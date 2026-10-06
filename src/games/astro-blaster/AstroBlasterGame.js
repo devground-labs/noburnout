@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BaseGame } from '../../framework/BaseGame.js';
-import { createFighterShip, createAsteroidMesh } from './ShipModel.js';
+import { createFighterShip, createAsteroidMesh, createEnemyJetMesh } from './ShipModel.js';
 
 export class AstroBlasterGame extends BaseGame {
   constructor() {
@@ -20,13 +20,19 @@ export class AstroBlasterGame extends BaseGame {
     this.lasers = [];
     this.asteroids = [];
     this.particles = [];
+    this.enemies = [];
+    this.planets = [];
     this.starfield = null;
+    this.lowerStarfield = null;
 
     this.score = 0;
     this.highScore = 0;
     this.multiplier = 1;
     this.shield = 100;
     this.spawnTimer = 0;
+    this.enemySpawnTimer = 0;
+    this.planetSpawnTimer = 0;
+    this.distance = 0;
     this.fireCooldown = 0;
     this.gameOver = false;
   }
@@ -35,34 +41,58 @@ export class AstroBlasterGame extends BaseGame {
     await super.init(engine);
 
     // Deep space lighting
-    const amb = new THREE.AmbientLight(0x1e293b, 1.2);
+    const amb = new THREE.AmbientLight(0x475569, 3.5); // Brighter ambient light
     this.scene.add(amb);
 
-    const dir = new THREE.DirectionalLight(0x38bdf8, 1.8);
+    const dir = new THREE.DirectionalLight(0x7dd3fc, 2.5); // Brighter directional light
     dir.position.set(10, 30, -20);
     this.scene.add(dir);
 
-    // Starfield Particle System
-    const starGeo = new THREE.BufferGeometry();
-    const starCount = 1200;
-    const positions = new Float32Array(starCount * 3);
-    for (let i = 0; i < starCount * 3; i += 3) {
-      positions[i] = (Math.random() - 0.5) * 160;
-      positions[i + 1] = (Math.random() - 0.5) * 80;
-      positions[i + 2] = -120 + Math.random() * 200;
+    // Ship Floodlight initialization
+    this.floodLightOn = true;
+    this.floodLight = new THREE.SpotLight(0xffffff, 25.0); // Brighter floodlight
+    this.floodLight.position.set(0, 0, -2);
+    this.floodLight.angle = Math.PI / 2.5; // Wider angle
+    this.floodLight.penumbra = 0.5;
+    this.floodLight.decay = 0.5; // Less decay so it reaches further
+    this.floodLight.distance = 350;
+    
+    this.floodLightTarget = new THREE.Object3D();
+    this.floodLightTarget.position.set(0, 0, -100);
+
+    // Toggle floodlight with 'F' key
+    this.handleKeyDown = (e) => {
+      if (e.code === 'KeyF' || e.code === 'KeyL') {
+        this.floodLightOn = !this.floodLightOn;
+        this.floodLight.intensity = this.floodLightOn ? 15.0 : 0;
+      }
+    };
+    window.addEventListener('keydown', this.handleKeyDown);
+
+    // Lower Starfield Particle System
+    const lowerStarGeo = new THREE.BufferGeometry();
+    const lowerStarCount = 800;
+    const lowerStarPositions = new Float32Array(lowerStarCount * 3);
+    for (let i = 0; i < lowerStarCount * 3; i += 3) {
+      lowerStarPositions[i] = (Math.random() - 0.5) * 200;
+      lowerStarPositions[i + 1] = -25 - Math.random() * 40; // Below the game area
+      lowerStarPositions[i + 2] = -150 + Math.random() * 200;
     }
-    starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const starMat = new THREE.PointsMaterial({
+    lowerStarGeo.setAttribute('position', new THREE.BufferAttribute(lowerStarPositions, 3));
+    const lowerStarMat = new THREE.PointsMaterial({
       color: 0x93c5fd,
-      size: 0.8,
+      size: 1.0,
       transparent: true,
-      opacity: 0.85
+      opacity: 0.6
     });
-    this.starfield = new THREE.Points(starGeo, starMat);
-    this.scene.add(this.starfield);
+    this.lowerStarfield = new THREE.Points(lowerStarGeo, lowerStarMat);
+    this.scene.add(this.lowerStarfield);
 
     // Starfighter
     this.shipMesh = createFighterShip();
+    this.shipMesh.add(this.floodLight);
+    this.shipMesh.add(this.floodLightTarget);
+    this.floodLight.target = this.floodLightTarget;
     this.scene.add(this.shipMesh);
 
     this.ship = {
@@ -91,6 +121,17 @@ export class AstroBlasterGame extends BaseGame {
     this.lasers = [];
     this.asteroids.forEach(a => this.scene.remove(a.mesh));
     this.asteroids = [];
+    if (this.enemies) {
+      this.enemies.forEach(e => this.scene.remove(e.mesh));
+      this.enemies = [];
+    }
+    if (this.planets) {
+      this.planets.forEach(p => this.scene.remove(p.mesh));
+      this.planets = [];
+    }
+    this.distance = 0;
+    this.enemySpawnTimer = 0;
+    this.planetSpawnTimer = 0;
 
     this.ship.x = 0;
     this.ship.y = 0;
@@ -101,7 +142,35 @@ export class AstroBlasterGame extends BaseGame {
     if (modal) modal.style.display = 'none';
   }
 
-  spawnAsteroid() {
+  spawnPlanet() {
+    const radius = 25 + Math.random() * 15;
+    const geo = new THREE.SphereGeometry(radius, 32, 32);
+    const colors = [0x1e3a8a, 0x064e3b, 0x4c1d95, 0x78350f, 0x831843, 0x0f766e];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const mat = new THREE.MeshStandardMaterial({ 
+      color: color, 
+      roughness: 0.8,
+      metalness: 0.2,
+      fog: true
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    
+    const x = (Math.random() - 0.5) * 120;
+    const y = -45 - Math.random() * 20; // Pass below the player
+    const z = -200;
+
+    mesh.position.set(x, y, z);
+    mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+    this.scene.add(mesh);
+
+    this.planets.push({
+      mesh,
+      vz: 12 + Math.random() * 8, // Slow moving
+      rotY: (Math.random() - 0.5) * 0.05
+    });
+  }
+
+  spawnAsteroid(difficultyLevel = 0) {
     const radius = 1.2 + Math.random() * 1.6;
     const mesh = createAsteroidMesh(radius);
     const x = (Math.random() - 0.5) * 44;
@@ -111,14 +180,36 @@ export class AstroBlasterGame extends BaseGame {
     mesh.position.set(x, y, z);
     this.scene.add(mesh);
 
+    const extraSpeed = difficultyLevel * 5;
+
     this.asteroids.push({
       mesh,
       radius,
       vx: (Math.random() - 0.5) * 4,
       vy: (Math.random() - 0.5) * 2,
-      vz: 26 + Math.random() * 14,
+      vz: 26 + Math.random() * 14 + extraSpeed,
       rotX: (Math.random() - 0.5) * 3,
       rotY: (Math.random() - 0.5) * 3
+    });
+  }
+
+  spawnEnemy(difficultyLevel = 0) {
+    const mesh = createEnemyJetMesh();
+    const x = (Math.random() - 0.5) * 28;
+    const y = (Math.random() - 0.5) * 14;
+    const z = -80;
+
+    mesh.position.set(x, y, z);
+    this.scene.add(mesh);
+
+    const extraSpeed = difficultyLevel * 6;
+
+    this.enemies.push({
+      mesh,
+      radius: 1.2,
+      vx: 0,
+      vy: 0,
+      vz: 40 + Math.random() * 20 + extraSpeed
     });
   }
 
@@ -148,15 +239,19 @@ export class AstroBlasterGame extends BaseGame {
   }
 
   update(dt, input) {
-    // 1. Move Starfield for illusion of hyperspace warp
-    const starPos = this.starfield.geometry.attributes.position;
-    for (let i = 2; i < starPos.count * 3; i += 3) {
-      starPos.array[i] += 48 * dt;
-      if (starPos.array[i] > 30) {
-        starPos.array[i] = -120;
+    // 1. Hyperspace starfield illusion removed
+
+    // 1. Move Lower Starfield
+    if (this.lowerStarfield) {
+      const lowerPos = this.lowerStarfield.geometry.attributes.position;
+      for (let i = 2; i < lowerPos.count * 3; i += 3) {
+        lowerPos.array[i] += 40 * dt;
+        if (lowerPos.array[i] > 50) {
+          lowerPos.array[i] = -150;
+        }
       }
+      lowerPos.needsUpdate = true;
     }
-    starPos.needsUpdate = true;
 
     if (this.gameOver) return;
 
@@ -168,9 +263,10 @@ export class AstroBlasterGame extends BaseGame {
     if (p1In.up) this.ship.targetY += speed * dt;
     if (p1In.down) this.ship.targetY -= speed * dt;
 
-    // Clamping to screen volume
-    this.ship.targetX = Math.max(-20, Math.min(20, this.ship.targetX));
-    this.ship.targetY = Math.max(-10, Math.min(10, this.ship.targetY));
+    // Clamping to tighter screen volume based on camera perspective
+    this.ship.targetX = Math.max(-11, Math.min(11, this.ship.targetX));
+    // Camera is looking slightly down, so the visible Y center is around +6 at Z=14
+    this.ship.targetY = Math.max(1, Math.min(11, this.ship.targetY));
 
     // Smooth lerp
     this.ship.x = THREE.MathUtils.lerp(this.ship.x, this.ship.targetX, dt * 10);
@@ -189,12 +285,46 @@ export class AstroBlasterGame extends BaseGame {
     }
     this.fireCooldown = Math.max(0, this.fireCooldown - dt);
 
-    // 3. Asteroid Spawning
+    // 3. Difficulty and Spawning
+    const forwardSpeed = 40;
+    this.distance += forwardSpeed * dt;
+    const difficultyLevel = Math.floor(this.distance / 500);
+
     this.spawnTimer += dt;
-    const rate = this.currentMode === 'Practice Drift' ? 1.0 : 0.45;
+    const baseRate = this.currentMode === 'Practice Drift' ? 1.0 : 0.35;
+    const rate = Math.max(0.15, baseRate - (difficultyLevel * 0.05));
+    
     if (this.spawnTimer >= rate) {
       this.spawnTimer = 0;
-      this.spawnAsteroid();
+      this.spawnAsteroid(difficultyLevel);
+    }
+
+    if (this.currentMode !== 'Practice Drift') {
+      this.enemySpawnTimer += dt;
+      const enemyRate = Math.max(0.6, 2.5 - (difficultyLevel * 0.3));
+      if (this.enemySpawnTimer >= enemyRate) {
+        this.enemySpawnTimer = 0;
+        this.spawnEnemy(difficultyLevel);
+      }
+    }
+
+    this.planetSpawnTimer += dt;
+    if (this.planetSpawnTimer >= 10.0) { // Spawn one roughly every 10 seconds
+      this.planetSpawnTimer = 0;
+      this.spawnPlanet();
+    }
+
+    // Update Planets
+    if (this.planets) {
+      for (let i = this.planets.length - 1; i >= 0; i--) {
+        const p = this.planets[i];
+        p.mesh.position.z += p.vz * dt;
+        p.mesh.rotation.y += p.rotY * dt;
+        if (p.mesh.position.z > 50) {
+          this.scene.remove(p.mesh);
+          this.planets.splice(i, 1);
+        }
+      }
     }
 
     // 4. Update Lasers
@@ -262,6 +392,59 @@ export class AstroBlasterGame extends BaseGame {
       }
     }
 
+    // 5.5 Update Enemies
+    if (this.enemies) {
+      for (let i = this.enemies.length - 1; i >= 0; i--) {
+        const e = this.enemies[i];
+        
+        // Slight homing towards player
+        const dx = this.ship.x - e.mesh.position.x;
+        const dy = this.ship.y - e.mesh.position.y;
+        e.vx = THREE.MathUtils.lerp(e.vx, dx * 0.5, dt);
+        e.vy = THREE.MathUtils.lerp(e.vy, dy * 0.5, dt);
+        
+        e.mesh.position.x += e.vx * dt;
+        e.mesh.position.y += e.vy * dt;
+        e.mesh.position.z += e.vz * dt;
+
+        // Collision with lasers
+        let hit = false;
+        for (let j = this.lasers.length - 1; j >= 0; j--) {
+          const l = this.lasers[j];
+          if (e.mesh.position.distanceTo(l.mesh.position) < e.radius + 0.6) {
+            hit = true;
+            this.scene.remove(l.mesh);
+            this.lasers.splice(j, 1);
+            break;
+          }
+        }
+        if (hit) {
+          this.destroyEnemy(e, true);
+          this.enemies.splice(i, 1);
+          continue;
+        }
+
+        // Collision with ship
+        if (e.mesh.position.distanceTo(this.shipMesh.position) < e.radius + 1.2) {
+          this.audio.hit();
+          this.destroyEnemy(e, false);
+          this.enemies.splice(i, 1);
+          
+          if (this.currentMode !== 'Practice Drift') {
+            this.shield = Math.max(0, this.shield - 35);
+            this.multiplier = 1;
+            if (this.shield <= 0) this.triggerGameOver();
+          }
+          continue;
+        }
+
+        if (e.mesh.position.z > 30) {
+          this.scene.remove(e.mesh);
+          this.enemies.splice(i, 1);
+        }
+      }
+    }
+
     // 6. Update Particles
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
@@ -303,6 +486,34 @@ export class AstroBlasterGame extends BaseGame {
     this.scene.remove(asteroid.mesh);
   }
 
+  destroyEnemy(enemy, byLaser) {
+    this.audio.explosion(0.9);
+    const pos = enemy.mesh.position;
+
+    if (byLaser) {
+      this.score += 250 * this.multiplier;
+      this.multiplier = Math.min(8, this.multiplier + 0.5);
+      if (this.score > this.highScore) this.highScore = this.score;
+    }
+
+    for (let i = 0; i < 15; i++) {
+      const geo = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+      const mat = new THREE.MeshBasicMaterial({ color: byLaser ? 0xef4444 : 0xf97316 });
+      const p = new THREE.Mesh(geo, mat);
+      p.position.copy(pos);
+      this.scene.add(p);
+
+      const vel = new THREE.Vector3(
+        (Math.random() - 0.5) * 20,
+        (Math.random() - 0.5) * 20,
+        (Math.random() - 0.5) * 20
+      );
+      this.particles.push({ mesh: p, vel, life: 0.6 });
+    }
+
+    this.scene.remove(enemy.mesh);
+  }
+
   triggerGameOver() {
     this.gameOver = true;
     this.audio.explosion(1.5);
@@ -327,8 +538,8 @@ export class AstroBlasterGame extends BaseGame {
           </div>
           <div>
             <div class="astro-score-label">SHIELD INTEGRITY</div>
-            <div class="bar-container" style="width: 140px; height: 10px;">
-              <div class="bar-fill hp-bar" id="astro-shield-fill" style="width: 100%;"></div>
+            <div style="width: 140px; height: 10px; background: rgba(255, 255, 255, 0.15); border-radius: 5px; overflow: hidden; margin-top: 4px;">
+              <div id="astro-shield-fill" style="width: 100%; height: 100%; background: #38bdf8; transition: width 0.2s ease-out;"></div>
             </div>
           </div>
         </div>
@@ -369,6 +580,7 @@ export class AstroBlasterGame extends BaseGame {
     return [
       { label: 'Pilot Maneuver (3D)', keys: 'W A S D / ARROW KEYS' },
       { label: 'Twin Plasma Blasters', keys: 'SPACE / MOUSE CLICK' },
+      { label: 'Toggle Floodlight', keys: 'F or L KEY' },
       { label: 'Hyperspace Drift', keys: 'Automatic continuous forward drive' },
       { label: 'Combo Streak', keys: 'Chain asteroid kills for x8.0 multiplier' }
     ];
@@ -376,10 +588,16 @@ export class AstroBlasterGame extends BaseGame {
 
   destroy() {
     super.destroy();
+    if (this.handleKeyDown) {
+      window.removeEventListener('keydown', this.handleKeyDown);
+    }
     this.lasers.forEach(l => this.scene.remove(l.mesh));
     this.asteroids.forEach(a => this.scene.remove(a.mesh));
+    if (this.enemies) this.enemies.forEach(e => this.scene.remove(e.mesh));
     this.particles.forEach(p => this.scene.remove(p.mesh));
     if (this.starfield) this.scene.remove(this.starfield);
+    if (this.lowerStarfield) this.scene.remove(this.lowerStarfield);
+    if (this.planets) this.planets.forEach(p => this.scene.remove(p.mesh));
     if (this.shipMesh) this.scene.remove(this.shipMesh);
   }
 }

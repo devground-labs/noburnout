@@ -16,10 +16,12 @@ export class UIManager {
     this.soundBtn = document.getElementById('btn-sound-toggle');
     this.landingSoundBtn = document.getElementById('landing-sound-toggle');
 
-    // Selected game mode state per game ID
     this.selectedModes = {
       'cyber-tanks': '1P (vs AI)',
-      'astro-blaster': 'Standard'
+      'astro-blaster': 'Standard',
+      'super-over-cricket': 'Target Chase (19 Runs)',
+      'shadow-operative': 'Infiltration (Normal)',
+      'super-plumber': 'World 1-1 (Grassland)'
     };
 
     this._bindShellEvents();
@@ -116,10 +118,20 @@ export class UIManager {
     container.innerHTML = games.map(g => {
       const currentSelectedMode = this.selectedModes[g.id] || g.modes[0];
       const isTank = g.id === 'cyber-tanks';
-      const glowColor = isTank ? '#38bdf8' : '#a855f7';
+      const isCricket = g.id === 'super-over-cricket';
+      const isShadow = g.id === 'shadow-operative';
+      const isPlumber = g.id === 'super-plumber';
+      const glowColor = isTank ? '#38bdf8' : (isCricket ? '#10b981' : (isShadow ? '#f43f5e' : (isPlumber ? '#ef4444' : '#a855f7')));
       const themeGradient = isTank 
         ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(2, 132, 199, 0.05))'
-        : 'linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(217, 70, 239, 0.05))';
+        : (isCricket
+          ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(245, 158, 11, 0.08))'
+          : (isShadow
+            ? 'linear-gradient(135deg, rgba(244, 63, 94, 0.22), rgba(15, 23, 42, 0.45))'
+            : (isPlumber
+              ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(245, 158, 11, 0.12))'
+              : 'linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(217, 70, 239, 0.05))')));
+      const btnClass = isTank ? 'cyan-btn' : (isCricket ? 'emerald-btn' : (isShadow ? 'rose-btn' : (isPlumber ? 'gold-btn' : 'purple-btn')));
 
       return `
         <div class="landing-card" data-game="${g.id}" style="--card-glow: ${glowColor};">
@@ -144,14 +156,14 @@ export class UIManager {
               <div class="mode-options" id="modes-${g.id}">
                 ${g.modes.map(mode => `
                   <button type="button" class="mode-chip ${mode === currentSelectedMode ? 'active' : ''}" data-game="${g.id}" data-mode="${mode}">
-                    ${mode === 'Practice' ? '🎯' : mode.includes('2P') ? '👥' : '⚡'} ${mode}
+                    ${mode.includes('Grassland') ? '🍄' : mode.includes('Underground') ? '💎' : mode.includes('Chase') ? '🏆' : mode.includes('Blitz') ? '⚡' : mode.includes('Ghost') ? '👻' : mode.includes('Speedrun') ? '⏱️' : mode.includes('Infiltration') ? '🕵️' : mode === 'Practice' ? '🎯' : '🎮'} ${mode}
                   </button>
                 `).join('')}
               </div>
             </div>
 
             <div class="card-actions">
-              <button class="launch-card-btn ${isTank ? 'cyan-btn' : 'purple-btn'}" data-game="${g.id}">
+              <button class="launch-card-btn ${btnClass}" data-game="${g.id}">
                 <span>PLAY NOW</span>
                 <span class="btn-arrow">➔</span>
               </button>

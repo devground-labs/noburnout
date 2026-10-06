@@ -6,7 +6,7 @@ export function createFighterShip() {
   // 1. Sleek Fuselage
   const bodyGeo = new THREE.ConeGeometry(0.9, 4.2, 8);
   const bodyMat = new THREE.MeshStandardMaterial({
-    color: 0x0f172a,
+    color: 0xe2e8f0,
     metalness: 0.9,
     roughness: 0.2
   });
@@ -40,7 +40,7 @@ export function createFighterShip() {
   const extrudeSettings = { depth: 0.12, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05 };
   const wingGeo = new THREE.ExtrudeGeometry(wingShape, extrudeSettings);
   const wingMat = new THREE.MeshStandardMaterial({
-    color: 0x1e293b,
+    color: 0x94a3b8,
     metalness: 0.85,
     roughness: 0.25
   });
@@ -84,10 +84,43 @@ export function createAsteroidMesh(radius = 1.8) {
   geo.computeVertexNormals();
 
   const mat = new THREE.MeshStandardMaterial({
-    color: 0x475569,
+    color: 0x94a3b8, // Much lighter grey
     roughness: 0.85,
     metalness: 0.15,
     flatShading: true
   });
   return new THREE.Mesh(geo, mat);
+}
+
+export function createEnemyJetMesh() {
+  const group = new THREE.Group();
+  
+  const bodyGeo = new THREE.ConeGeometry(0.6, 2.4, 6);
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: 0xef4444, // Red enemy
+    metalness: 0.8,
+    roughness: 0.3
+  });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.rotation.x = Math.PI / 2; // Pointing towards player (but moving backwards, so maybe wait)
+  // Our ship points forward. We are looking down Z axis towards negative. 
+  // Ship cone rotation is Math.PI/2 (tip points to -Z). 
+  // Enemy comes from -Z to +Z, so it should point to +Z.
+  body.rotation.x = -Math.PI / 2; 
+  group.add(body);
+
+  const wingGeo = new THREE.BoxGeometry(2.5, 0.1, 0.6);
+  const wingMat = new THREE.MeshStandardMaterial({ color: 0x7f1d1d, metalness: 0.7, roughness: 0.3 });
+  const wing = new THREE.Mesh(wingGeo, wingMat);
+  wing.position.set(0, 0, 0.2);
+  group.add(wing);
+
+  const engineGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.4, 8);
+  const engineMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+  const engine = new THREE.Mesh(engineGeo, engineMat);
+  engine.rotation.x = Math.PI / 2;
+  engine.position.set(0, 0, -1.2);
+  group.add(engine);
+
+  return group;
 }
