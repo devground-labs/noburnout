@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Nexus Arcade · 3D Web Game Framework</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700;800&family=Rajdhani:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <!-- 3D WebGL Canvas Layer -->
+  <div id="canvas-container"></div>
+
+  <!-- Arcade Top Navigation Bar -->
+  <header class="arcade-navbar glass">
+    <div class="nav-left">
+      <div class="brand">
+        <span class="brand-icon">⚡</span>
+        <span class="brand-title">NEXUS ARCADE</span>
+      </div>
+      <div class="divider"></div>
+      <div class="game-info">
+        <span class="game-badge" id="current-game-badge">3D WebGL</span>
+        <span class="game-title" id="current-game-title">Loading Game...</span>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <button class="nav-btn primary" id="btn-open-games">
+        <span>🎮</span> Switch Game
+      </button>
+      <button class="nav-btn" id="btn-open-help" title="Game Controls">
+        <span>⌨️</span> Controls
+      </button>
+      <button class="nav-btn icon-btn" id="btn-sound-toggle" title="Toggle Sound">
+        🔊
+      </button>
+      <button class="nav-btn icon-btn" id="btn-fullscreen" title="Toggle Fullscreen">
+        ⛶
+      </button>
+      <div class="fps-pill" id="hud-fps">60 FPS</div>
+    </div>
+  </header>
+
+  <!-- Dynamic In-Game HUD Layer -->
+  <div id="game-hud"></div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <!-- Games Selection Modal -->
+  <div class="modal-overlay" id="modal-games">
+    <div class="modal-window glass">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">🕹️ ARCADE GAME SELECTOR</h2>
+          <p class="modal-subtitle">Pick any game powered by the Three.js & Physics Game Framework</p>
+        </div>
+        <button class="modal-close-btn" id="btn-close-games">&times;</button>
+      </div>
+      <div class="games-grid" id="games-list-grid">
+        <!-- Rendered dynamically by UIManager -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls / Help Modal -->
+  <div class="modal-overlay" id="modal-help">
+    <div class="modal-window glass modal-window-sm">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">⌨️ GAME CONTROLS & RULES</h2>
+          <p class="modal-subtitle">Direct keyboard and mouse bindings</p>
+        </div>
+        <button class="modal-close-btn" id="btn-close-help">&times;</button>
+      </div>
+      <div class="controls-list" id="help-controls-list">
+        <!-- Rendered dynamically by UIManager -->
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
