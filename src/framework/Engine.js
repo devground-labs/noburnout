@@ -22,23 +22,25 @@ export class Engine {
     this.fps = 60;
     this._frameCount = 0;
     this._fpsTimer = 0;
+    this.isLobby = true;
 
     this._initThree();
     this._bindEvents();
+    this.initLobby();
     this._loop = this._loop.bind(this);
     requestAnimationFrame(this._loop);
   }
 
   _initThree() {
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x060913);
-    this.scene.fog = new THREE.FogExp2(0x060913, 0.012);
+    this.scene.background = new THREE.Color(0x050811);
+    this.scene.fog = new THREE.FogExp2(0x050811, 0.015);
 
     const width = this.container.clientWidth || window.innerWidth;
     const height = this.container.clientHeight || window.innerHeight;
 
     this.camera = new THREE.PerspectiveCamera(55, width / height, 0.1, 1000);
-    this.camera.position.set(0, 25, 30);
+    this.camera.position.set(0, 20, 32);
     this.camera.lookAt(0, 0, 0);
 
     this.renderer = new THREE.WebGLRenderer({
@@ -77,10 +79,78 @@ export class Engine {
     }
   }
 
+  initLobby() {
+    this.isLobby = true;
+    if (this.currentGame) {
+      try {
+        this.currentGame.destroy();
+      } catch (e) {
+        console.warn('Cleanup error:', e);
+      }
+      this.currentGame = null;
+    }
+
+    this._clearScene();
+    this.physics.clear();
+
+    // Setup ambient 3D cyber grid & particle nebula for the Lobby
+    this.scene.background = new THREE.Color(0x040714);
+    this.scene.fog = new THREE.FogExp2(0x040714, 0.018);
+
+    this.camera.position.set(0, 15, 26);
+    this.camera.lookAt(0, 2, 0);
+
+    const ambLight = new THREE.AmbientLight(0x1e293b, 1.2);
+    this.scene.add(ambLight);
+
+    const dirLight = new THREE.DirectionalLight(0x38bdf8, 2.0);
+    dirLight.position.set(20, 40, 20);
+    this.scene.add(dirLight);
+
+    const pointLight = new THREE.PointLight(0xa855f7, 3, 50);
+    pointLight.position.set(-15, 10, -5);
+    this.scene.add(pointLight);
+
+    // Cyber grid
+    const gridHelper = new THREE.GridHelper(120, 60, 0x38bdf8, 0x1e293b);
+    gridHelper.position.y = -2;
+    gridHelper.material.opacity = 0.55;
+    gridHelper.material.transparent = true;
+    this.scene.add(gridHelper);
+    this.lobbyGrid = gridHelper;
+
+    // Ambient floating particles
+    const particleCount = 200;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    for (let i = 0; i < particleCount * 3; i += 3) {
+      positions[i] = (Math.random() - 0.5) * 80;
+      positions[i + 1] = Math.random() * 30;
+      positions[i + 2] = (Math.random() - 0.5) * 80;
+    }
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const pMaterial = new THREE.PointsMaterial({
+      color: 0x38bdf8,
+      size: 0.35,
+      transparent: true,
+      opacity: 0.6
+    });
+    this.lobbyParticles = new THREE.Points(geometry, pMaterial);
+    this.scene.add(this.lobbyParticles);
+  }
+
+  returnToLobby() {
+    this.initLobby();
+    if (this.ui) {
+      this.ui.showLandingPage();
+    }
+  }
+
   async loadGame(gameId, mode = null) {
+    this.isLobby = false;
     const entry = this.registry.get(gameId);
     if (!entry) {
-      console.error();
+      console.error(`Game not found: ${gameId}`);
       return;
     }
 
@@ -103,8 +173,9 @@ export class Engine {
     await game.init(this);
     this.currentGame = game;
 
-    // 4. Update UI HUD
+    // 4. Update UI HUD & hide landing page
     if (this.ui) {
+      this.ui.hideLandingPage();
       this.ui.setGameHUD(game.getHUDHtml());
       this.ui.updateActiveGameInfo(entry);
     }
@@ -127,6 +198,8 @@ export class Engine {
         }
       }
     }
+    this.lobbyGrid = null;
+    this.lobbyParticles = null;
   }
 
   _loop() {
@@ -146,16 +219,31 @@ export class Engine {
 
     TWEEN.update();
 
-    if (this.currentGame && this.currentGame.isRunning && !this.currentGame.isPaused) {
+    if (this.isLobby) {
+      // Gentle lobby animations
+      if (this.lobbyGrid) {
+        this.lobbyGrid.rotation.y += 0.0008;
+      }
+      if (this.lobbyParticles) {
+        this.lobbyParticles.rotation.y -= 0.0004;
+      }
+      this.renderer.render(this.scene, this.camera);
+    } else if (this.currentGame && this.currentGame.isRunning && !this.currentGame.isPaused) {
       this.physics.step(dt);
       this.currentGame.update(dt, this.input);
       this.currentGame.updateHUD();
-    }
 
-    if (this.currentGame && typeof this.currentGame.render === 'function') {
-      this.currentGame.render();
-    } else {
-      this.renderer.render(this.scene, this.camera);
+      if (this.currentGame.hasCustomRender) {
+        this.currentGame.render();
+      } else {
+        this.renderer.render(this.scene, this.camera);
+      }
+    } else if (this.currentGame) {
+      if (this.currentGame.hasCustomRender) {
+        this.currentGame.render();
+      } else {
+        this.renderer.render(this.scene, this.camera);
+      }
     }
 
     this.input.update();

@@ -14,9 +14,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   engine.registry.register(CyberTanksGame);
   engine.registry.register(AstroBlasterGame);
 
-  // Load primary showcase game
-  await engine.loadGame('cyber-tanks', '1P (vs AI)');
+  // Start with Landing Page and 3D ambient cyber grid lobby
+  ui.showLandingPage();
 
   // Welcome toast
-  ui.toast('NEXUS ARCADE READY', 'Click "Switch Game" to browse the multi-game catalog!', '#38bdf8');
+  ui.toast('WELCOME TO NEXUS ARCADE', 'Select your game below to begin playing!', '#38bdf8');
 });

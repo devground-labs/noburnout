@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Nexus Arcade · 3D Web Game Framework</title>
+  <title>Nexus Arcade · 3D Web Game Platform</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,22 +14,89 @@
   <!-- 3D WebGL Canvas Layer -->
   <div id="canvas-container"></div>
 
-  <!-- Arcade Top Navigation Bar -->
-  <header class="arcade-navbar glass">
-    <div class="nav-left">
+  <!-- Fullscreen Landing Page & Game Selector -->
+  <section class="landing-page" id="landing-page">
+    <div class="landing-header">
       <div class="brand">
+        <span class="brand-icon">⚡</span>
+        <span class="brand-title">NEXUS ARCADE</span>
+      </div>
+      <div class="landing-header-actions">
+        <button class="nav-btn icon-btn" id="landing-sound-toggle" title="Toggle Sound">
+          🔊
+        </button>
+        <button class="nav-btn icon-btn" id="landing-fullscreen" title="Toggle Fullscreen">
+          ⛶
+        </button>
+      </div>
+    </div>
+
+    <div class="landing-hero">
+      <div class="hero-badge">⚡ 3D WEBGL ARCADE PLATFORM</div>
+      <h1 class="hero-title">SELECT YOUR BATTLEGROUND</h1>
+      <p class="hero-subtitle">High-octane browser games powered by Three.js real-time rendering, Cannon-es physics, and procedural synthesizer audio.</p>
+    </div>
+
+    <!-- Interactive Game Selection Cards -->
+    <div class="landing-games-grid" id="landing-games-grid">
+      <!-- Injected dynamically by UIManager -->
+    </div>
+
+    <!-- Tech Specs & Highlights Footer -->
+    <div class="landing-footer glass">
+      <div class="spec-item">
+        <span class="spec-icon">🔮</span>
+        <div>
+          <div class="spec-label">Three.js 3D</div>
+          <div class="spec-val">Realtime WebGL</div>
+        </div>
+      </div>
+      <div class="spec-divider"></div>
+      <div class="spec-item">
+        <span class="spec-icon">💥</span>
+        <div>
+          <div class="spec-label">Cannon Physics</div>
+          <div class="spec-val">Rigid-Body 60 FPS</div>
+        </div>
+      </div>
+      <div class="spec-divider"></div>
+      <div class="spec-item">
+        <span class="spec-icon">🔊</span>
+        <div>
+          <div class="spec-label">Procedural Audio</div>
+          <div class="spec-val">Web Audio Synth</div>
+        </div>
+      </div>
+      <div class="spec-divider"></div>
+      <div class="spec-item">
+        <span class="spec-icon">👥</span>
+        <div>
+          <div class="spec-label">Multi-Mode</div>
+          <div class="spec-val">AI & 2-Player Local</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Arcade Top Navigation Bar (Active during gameplay) -->
+  <header class="arcade-navbar glass" id="arcade-navbar" style="display: none;">
+    <div class="nav-left">
+      <div class="brand" id="nav-brand-home" title="Return to Landing Page">
         <span class="brand-icon">⚡</span>
         <span class="brand-title">NEXUS ARCADE</span>
       </div>
       <div class="divider"></div>
       <div class="game-info">
         <span class="game-badge" id="current-game-badge">3D WebGL</span>
-        <span class="game-title" id="current-game-title">Loading Game...</span>
+        <span class="game-title" id="current-game-title">Game Title</span>
       </div>
     </div>
 
     <div class="nav-right">
-      <button class="nav-btn primary" id="btn-open-games">
+      <button class="nav-btn primary" id="btn-return-lobby" title="Back to Games Landing Page">
+        <span>🏠</span> Lobby
+      </button>
+      <button class="nav-btn" id="btn-open-games" title="Switch to another game">
         <span>🎮</span> Switch Game
       </button>
       <button class="nav-btn" id="btn-open-help" title="Game Controls">
@@ -51,7 +118,7 @@
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
-  <!-- Games Selection Modal -->
+  <!-- Games Selection Modal (Quick Switcher) -->
   <div class="modal-overlay" id="modal-games">
     <div class="modal-window glass">
       <div class="modal-header">
