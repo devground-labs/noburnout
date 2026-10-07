@@ -4,7 +4,7 @@ Short, satisfying browser games for software engineers in the age of AI. Take a 
 
 Under the hood it is a 3D web game framework:
 
-A high-performance, modular **3D Web Game Framework** built on **Three.js**, **Cannon-es physics**, and **Web Audio API**. Designed for building, cataloging, and deploying multi-game arcade suites instantly to production.
+A high-performance, modular **3D Web Game Framework** built on **Three.js**, **Cannon-es physics**, and **Web Audio API**. Designed for building and cataloging multi-game arcade suites.
 
 ---
 
@@ -16,7 +16,6 @@ A high-performance, modular **3D Web Game Framework** built on **Three.js**, **C
 - **Procedural Audio Synthesizer**: Low-latency procedural Web Audio engine generating laser blasts, missile launches, explosions, chimes, and brass fanfare with **0 external asset network dependencies**.
 - **Universal Input Manager**: Unified handling for Keyboard (P1 and P2 separate key mappings), Mouse, and mobile touch.
 - **Cyberpunk Arcade Shell**: Integrated header bar, real-time FPS counter, game switcher modal, sound mute, fullscreen support, and toast alerts.
-- **Zero-Friction Deployment**: Bundles cleanly via Vite into a standalone `dist/` directory ready for Vercel, Netlify, GitHub Pages, or Cloudflare Pages.
 
 ---
 
@@ -133,24 +132,9 @@ npm run dev
 
 ---
 
-## 🌐 Production Build & Deployment
+## 🏗️ Production Build
 
 ```bash
-# Build optimized static distribution
+# Check that everything compiles (outputs to dist/)
 npm run build
 ```
-
-This generates an ultra-fast, self-contained `dist/` directory.
-
-### Deploy to Vercel
-```bash
-npx vercel deploy --prod
-```
-
-### Deploy to Netlify
-```bash
-npx netlify deploy --prod --dir=dist
-```
-
-### Deploy to GitHub Pages
-Push the repository to GitHub and enable **GitHub Pages** targeting the `dist` folder or use GitHub Actions.
