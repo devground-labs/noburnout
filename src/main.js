@@ -1,4 +1,23 @@
 import { inject } from '@vercel/analytics';
+
+// Self-hosted fonts (latin subset), bundled by Vite so no third-party font requests are made
+import '@fontsource/inter/latin-400.css';
+import '@fontsource/inter/latin-600.css';
+import '@fontsource/inter/latin-700.css';
+import '@fontsource/inter/latin-800.css';
+import '@fontsource/plus-jakarta-sans/latin-400.css';
+import '@fontsource/plus-jakarta-sans/latin-600.css';
+import '@fontsource/plus-jakarta-sans/latin-700.css';
+import '@fontsource/plus-jakarta-sans/latin-800.css';
+import '@fontsource/jetbrains-mono/latin-500.css';
+import '@fontsource/jetbrains-mono/latin-700.css';
+import '@fontsource/jetbrains-mono/latin-800.css';
+import '@fontsource/orbitron/latin-600.css';
+import '@fontsource/orbitron/latin-800.css';
+import '@fontsource/orbitron/latin-900.css';
+import '@fontsource/rajdhani/latin-600.css';
+import '@fontsource/rajdhani/latin-700.css';
+
 import { Engine } from './framework/Engine.js';
 import { UIManager } from './framework/UIManager.js';
 import { CyberTanksGame } from './games/cyber-tanks/CyberTanksGame.js';

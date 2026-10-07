@@ -2663,7 +2663,7 @@ html, body {
 .cr-hud {
   position: absolute;
   inset: 0;
-  font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   color: #0f172a;
   user-select: none;
 }
