@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@tweenjs/tween.js": "^25.0.0",
+    "@vercel/analytics": "^2.0.1",
     "cannon-es": "^0.20.0",
     "peerjs": "^1.5.5",
     "three": "^0.186.1"

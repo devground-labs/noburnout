@@ -1,3 +1,4 @@
+import { inject } from '@vercel/analytics';
 import { Engine } from './framework/Engine.js';
 import { UIManager } from './framework/UIManager.js';
 import { CyberTanksGame } from './games/cyber-tanks/CyberTanksGame.js';
@@ -10,6 +11,9 @@ import { CyberRunnerGame } from './games/cyber-runner/CyberRunnerGame.js';
 // import { ShadowOperativeGame } from './games/shadow-operative/ShadowOperativeGame.js';
 // import { SuperPlumberGame } from './games/super-plumber/SuperPlumberGame.js';
 // import { GravityTugGame } from './games/gravity-tug/GravityTugGame.js';
+
+// Vercel Web Analytics: cookieless visitor and page-view counts (only reports on the deployed site)
+inject();
 
 // Bootstrap Arcade Framework
 window.addEventListener('DOMContentLoaded', async () => {
