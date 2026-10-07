@@ -597,7 +597,9 @@ export class NeonOverdriveGame extends BaseGame {
 
     // --- Steering -------------------------------------------------------
     const keys = input.keys;
-    const dir = (keys['ArrowRight'] || keys['KeyD'] ? 1 : 0) - (keys['ArrowLeft'] || keys['KeyA'] ? 1 : 0);
+    const dir =
+      (keys['ArrowRight'] || keys['KeyD'] || this._touchRight ? 1 : 0) -
+      (keys['ArrowLeft'] || keys['KeyA'] || this._touchLeft ? 1 : 0);
     const maxLateral = 20 + (this.speed / MAX_SPEED) * 6;
     this.carVel += (dir * maxLateral - this.carVel) * Math.min(1, dt * 9);
     this.car.position.x = THREE.MathUtils.clamp(this.car.position.x + this.carVel * dt, -CAR_X_LIMIT, CAR_X_LIMIT);
@@ -718,6 +720,10 @@ export class NeonOverdriveGame extends BaseGame {
           <div class="nd-speed-num"><span data-nd="speed">0</span><small>KPH</small></div>
           <div class="nd-speed-bar"><i data-nd="bar"></i></div>
         </div>
+        <div class="nd-touch">
+          <button class="nd-steer" data-nd="left" aria-label="Steer left">◀</button>
+          <button class="nd-steer" data-nd="right" aria-label="Steer right">▶</button>
+        </div>
         <div class="nd-gameover" data-nd="over">
           <div class="nd-over-card">
             <h1>SYSTEM CRASH</h1>
@@ -737,6 +743,14 @@ export class NeonOverdriveGame extends BaseGame {
     root.querySelectorAll('[data-nd]').forEach(el => (els[el.dataset.nd] = el));
     if (!els.score) return false;
     els.restart.addEventListener('click', () => this.isGameOver && this.resetGame());
+    const bindSteer = (el, prop) => {
+      const set = v => (e) => { e.preventDefault(); this[prop] = v; };
+      el.addEventListener('pointerdown', set(true));
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => el.addEventListener(t, set(false)));
+      el.addEventListener('contextmenu', e => e.preventDefault());
+    };
+    bindSteer(els.left, '_touchLeft');
+    bindSteer(els.right, '_touchRight');
     this.hud = els;
     return true;
   }

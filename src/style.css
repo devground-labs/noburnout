@@ -2659,6 +2659,39 @@ a.nav-btn { text-decoration: none; }
   background: rgba(0, 0, 0, 0.25);
   border-radius: 4px;
 }
+.nd-touch {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 55%;
+  display: none;
+}
+.nd-steer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 0 28px;
+  font-size: 2.2rem;
+  color: rgba(0, 229, 255, 0.55);
+  background: transparent;
+  border: 0;
+  outline: none;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.nd-steer:first-child { left: 0; justify-content: flex-start; padding-left: 28px; }
+.nd-steer:last-child { right: 0; justify-content: flex-end; padding-right: 28px; }
+.nd-steer:active { background: rgba(0, 229, 255, 0.08); }
+@media (pointer: coarse) {
+  .nd-touch { display: block; }
+  .nd-restart kbd { display: none; }
+}
 @media (max-width: 1100px) {
   .nd-panel { top: 86px; }
 }
