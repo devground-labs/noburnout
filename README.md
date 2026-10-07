@@ -1,4 +1,8 @@
-# ⚡ Nexus Arcade — 3D Web Game Framework
+# NoBurnout
+
+Short, satisfying browser games for software engineers in the age of AI. Take a few minutes between prompts, builds and code reviews, then come back sharper. No installs, no accounts, no streaks.
+
+Under the hood it is a 3D web game framework:
 
 A high-performance, modular **3D Web Game Framework** built on **Three.js**, **Cannon-es physics**, and **Web Audio API**. Designed for building, cataloging, and deploying multi-game arcade suites instantly to production.
 

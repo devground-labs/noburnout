@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Nexus Arcade · 3D Web Game Platform</title>
+  <title>NoBurnout · Quick browser games for engineers</title>
+  <meta name="description" content="NoBurnout: short, satisfying browser games for software engineers in the age of AI. No installs, no accounts. Take a break and come back sharper.">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,17 +19,17 @@
   <section class="landing-page" id="landing-page">
     <header class="lp-nav">
       <div class="lp-nav-inner">
-        <a class="lp-brand" data-scroll="lp-top" href="#" aria-label="Nexus Arcade home">
+        <a class="lp-brand" data-scroll="lp-top" href="#" aria-label="NoBurnout home">
           <svg class="lp-logo" viewBox="0 0 32 32" aria-hidden="true">
             <defs><linearGradient id="lpg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs>
             <rect width="32" height="32" rx="9" fill="url(#lpg)"/>
-            <path d="M18.5 5 9 18h6l-1.5 9L23 14h-6z" fill="#fff"/>
+            <path d="M12.5 9.5v13l11-6.5z" fill="#fff"/>
           </svg>
-          <span>Nexus Arcade</span>
+          <span>NoBurnout</span>
         </a>
         <nav class="lp-links" aria-label="Sections">
           <a href="#" data-scroll="lp-games">Games</a>
-          <a href="#" data-scroll="lp-features">Features</a>
+          <a href="#" data-scroll="lp-features">Why NoBurnout</a>
         </nav>
         <div class="landing-header-actions">
           <button class="nav-btn icon-btn" id="landing-sound-toggle" title="Toggle Sound" aria-label="Toggle sound"><svg class="ic ic-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg><svg class="ic ic-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4zM22 9l-6 6M16 9l6 6"/></svg></button>
@@ -39,27 +40,27 @@
 
     <main class="lp-container" id="lp-top">
       <section class="lp-hero">
-        <span class="lp-eyebrow"><i></i>Free to play · No downloads</span>
-        <h1 class="lp-title">Instant 3D arcade games,<br><span>right in your browser.</span></h1>
-        <p class="lp-lead">A curated collection of fast, polished games built on real-time WebGL. Pick a game, choose a mode and play in seconds on desktop or mobile.</p>
+        <span class="lp-eyebrow"><i></i>Made for engineers · Free to play</span>
+        <h1 class="lp-title">Step away from the terminal.<br><span>Come back sharper.</span></h1>
+        <p class="lp-lead">Short, satisfying browser games for software engineers in the age of AI. No installs, no accounts, no streaks to keep up. Just a few minutes of fun between prompts, builds and code reviews.</p>
         <div class="lp-cta">
-          <button class="lp-btn primary" data-scroll="lp-games" type="button">Browse games
+          <button class="lp-btn primary" data-scroll="lp-games" type="button">Pick a game
             <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M10 3v12m0 0-5-5m5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-          <button class="lp-btn ghost" data-scroll="lp-features" type="button">See what's inside</button>
+          <button class="lp-btn ghost" data-scroll="lp-features" type="button">Why NoBurnout</button>
         </div>
         <dl class="lp-stats">
           <div><dt id="lp-game-count">4</dt><dd>Games</dd></div>
           <div><dt>1–2</dt><dd>Players</dd></div>
-          <div><dt>60</dt><dd>FPS target</dd></div>
           <div><dt>0</dt><dd>Installs</dd></div>
+          <div><dt>0</dt><dd>Accounts</dd></div>
         </dl>
       </section>
 
       <section class="lp-section" id="lp-games">
         <div class="lp-section-head">
           <h2>Choose a game</h2>
-          <p>Select a mode on any card, then press Play.</p>
+          <p>Pick something quick. Most rounds take just a few minutes.</p>
         </div>
         <div class="landing-games-grid" id="landing-games-grid">
           <!-- Injected dynamically by UIManager -->
@@ -68,50 +69,50 @@
 
       <section class="lp-section" id="lp-features">
         <div class="lp-section-head">
-          <h2>Built for smooth play</h2>
-          <p>A shared engine keeps every game fast, consistent and easy to pick up.</p>
+          <h2>Why NoBurnout</h2>
+          <p>Because the best way to stay productive is to actually take a break.</p>
         </div>
         <div class="lp-features">
           <article class="lp-feature">
-            <span class="lp-ficon"><svg viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z M12 12l8-4.5M12 12v9M12 12 4 7.5"/></svg></span>
-            <h3>Real-time 3D</h3>
-            <p>Hardware-accelerated WebGL rendering with lighting, shadows and post-effects.</p>
+            <span class="lp-ficon"><svg viewBox="0 0 24 24"><path d="M13 3 5 14h6l-1 7 8-11h-6z"/></svg></span>
+            <h3>Quick to start</h3>
+            <p>Open the page and play. Nothing to install, no sign-up, no waiting on a launcher.</p>
           </article>
           <article class="lp-feature">
-            <span class="lp-ficon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></span>
-            <h3>Rigid-body physics</h3>
-            <p>Collisions and movement that feel weighty and responsive at a steady frame rate.</p>
+            <span class="lp-ficon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span>
+            <h3>Easy to put down</h3>
+            <p>Short rounds with no daily streaks or pressure. Play for five minutes, then get back to it.</p>
           </article>
           <article class="lp-feature">
-            <span class="lp-ficon"><svg viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></span>
-            <h3>Procedural audio</h3>
-            <p>Sound effects are synthesized live with Web Audio, so there is nothing extra to load.</p>
+            <span class="lp-ficon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
+            <h3>Plays anywhere</h3>
+            <p>Runs in your browser on desktop or mobile, with keyboard or touch controls.</p>
           </article>
           <article class="lp-feature">
             <span class="lp-ficon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 19c0-3.3 2.7-6 6-6s6 2.7 6 6M15 14.2c.6-.2 1.3-.3 2-.3 2.2 0 4 1.8 4 4"/></svg></span>
-            <h3>Solo or head-to-head</h3>
-            <p>Play against AI, practise on your own or share one keyboard with a friend.</p>
+            <h3>Play with a teammate</h3>
+            <p>Challenge a colleague on one keyboard, or play solo against the AI to blow off steam.</p>
           </article>
         </div>
       </section>
     </main>
 
     <footer class="lp-footer">
-      <span>© Nexus Arcade</span>
-      <span>Built with Three.js &amp; Web Audio</span>
+      <span>© NoBurnout</span>
+      <span>Take breaks. Ship better.</span>
     </footer>
   </section>
 
   <!-- Arcade Top Navigation Bar (Active during gameplay) -->
   <header class="arcade-navbar" id="arcade-navbar" style="display: none;">
     <div class="nav-left">
-      <a class="nav-brand" id="nav-brand-home" href="#" title="Return to Landing Page" aria-label="Nexus Arcade home">
+      <a class="nav-brand" id="nav-brand-home" href="#" title="Return to Landing Page" aria-label="NoBurnout home">
         <svg class="lp-logo" viewBox="0 0 32 32" aria-hidden="true">
           <defs><linearGradient id="nbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs>
           <rect width="32" height="32" rx="9" fill="url(#nbg)"/>
-          <path d="M18.5 5 9 18h6l-1.5 9L23 14h-6z" fill="#fff"/>
+          <path d="M12.5 9.5v13l11-6.5z" fill="#fff"/>
         </svg>
-        <span class="nav-brand-text">Nexus Arcade</span>
+        <span class="nav-brand-text">NoBurnout</span>
       </a>
       <span class="nav-sep" aria-hidden="true">/</span>
       <div class="game-info">

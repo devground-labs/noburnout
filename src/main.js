@@ -28,5 +28,5 @@ window.addEventListener('DOMContentLoaded', async () => {
   ui.showLandingPage();
 
   // Welcome toast
-  ui.toast('WELCOME TO NEXUS ARCADE', 'Select your game below to begin playing!', '#38bdf8');
+  ui.toast('WELCOME TO NOBURNOUT', 'Take a break. Pick a game to get started.', '#38bdf8');
 });
