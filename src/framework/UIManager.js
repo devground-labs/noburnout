@@ -306,6 +306,13 @@ export class UIManager {
   updateActiveGameInfo(entry) {
     if (this.titleEl) this.titleEl.textContent = entry.name;
     if (this.badgeEl) this.badgeEl.textContent = entry.badge;
+
+    // Prefill the game (and mode) on the GitHub bug-report form
+    const report = document.getElementById('btn-report-issue');
+    if (report) {
+      const params = new URLSearchParams({ template: 'bug_report.yml', game: entry.name });
+      report.href = `https://github.com/devground-labs/noburnout/issues/new?${params}`;
+    }
   }
 
   updateFPS(fps) {

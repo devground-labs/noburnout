@@ -1,0 +1,56 @@
+name: Bug report
+description: Something is broken, glitchy or not working as expected
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping make NoBurnout better. A few details make bugs much easier to fix.
+  - type: input
+    id: game
+    attributes:
+      label: Game
+      description: Which game were you playing? (or "Landing page" / "Navigation")
+      placeholder: Cyber Tanks 3D
+    validations:
+      required: true
+  - type: input
+    id: mode
+    attributes:
+      label: Mode
+      description: For example 1P (vs AI), 2 Players, Endless
+      placeholder: 1P (vs AI)
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the problem. Screenshots or a short screen recording are very helpful.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the site
+        2. Launch ...
+        3. ...
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and device
+      description: For example Chrome 130 on macOS, Safari on iPhone 15
+      placeholder: Chrome on macOS
+    validations:
+      required: true
+  - type: textarea
+    id: console
+    attributes:
+      label: Console errors (optional)
+      description: Open your browser's developer console and paste any red errors here.
+      render: shell

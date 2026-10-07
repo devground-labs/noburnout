@@ -20,16 +20,24 @@ A high-performance, modular **3D Web Game Framework** built on **Three.js**, **C
 
 ---
 
-## 🕹️ Included Showcase Games
+## 🕹️ Games
 
-1. **Cyber Tanks 3D (`cyber-tanks`)**:
-   - Tactical hover-tank combat in an arena with forcefields and destructible cover.
-   - **Championship 3-Rounds**: Strictly 3 rounds per match in battle modes, declaring the series champion after Round 3!
-   - **Game Modes**: `1P (vs AI Bot)`, `2P Local Duel`, and `Practice (Solo Target Range)`.
-2. **Neon Astro-Blaster 3D (`astro-blaster`)**:
-   - Hyperspace space-fighter combat dodging and destroying procedural asteroid fields.
-   - Twin plasma blasters, combo chain multipliers, and shield management.
-   - **Game Modes**: `Arcade Survival`, `Practice Drift`.
+1. **Cyber Tanks 3D** (`cyber-tanks`): tactical tank duels with destructible cover. Modes: 1P vs AI, 2P local duel, Practice target range. A match is 3 rounds.
+2. **Neon Astro-Blaster 3D** (`astro-blaster`): dodge and blast asteroid fields with twin plasma blasters and combo multipliers. Modes: Arcade Survival, Practice Drift.
+3. **Neon Overdrive** (`neon-overdrive`): an endless synthwave highway. Dodge traffic and barricades as the speed climbs.
+4. **Cyber-Runner** (`cyber-runner`): jump and double jump over obstacles and grab gems. 1 Player is endless with rising difficulty, 2 Players is a head-to-head race.
+
+---
+
+## 🤝 Contributing
+
+Contributions are very welcome, from bug reports to whole new games.
+
+- **Found a bug?** [Report an issue](https://github.com/devground-labs/noburnout/issues/new?template=bug_report.yml)
+- **Have a game or feature idea?** [Suggest it](https://github.com/devground-labs/noburnout/issues/new?template=game_idea.yml)
+- **Want to build something?** Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, how to add a game and the guidelines.
+
+Licensed under the [MIT License](LICENSE).
 
 ---
 

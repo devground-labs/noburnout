@@ -317,7 +317,30 @@ html, body {
 .lp-feature h3 { font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
 .lp-feature p { font-size: 0.88rem; line-height: 1.55; color: var(--lp-muted); }
 
+/* ---------- Contribute ---------- */
+.lp-contrib {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 32px;
+  border-radius: 18px;
+  background:
+    radial-gradient(500px 200px at 0% 0%, rgba(56, 189, 248, 0.12), transparent 70%),
+    var(--lp-surface);
+  border: 1px solid var(--lp-line);
+}
+.lp-contrib-text { max-width: 560px; }
+.lp-contrib-text h2 { font-family: 'Plus Jakarta Sans', var(--font-sans); font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; color: #fff; }
+.lp-contrib-text p { margin-top: 8px; color: var(--lp-muted); font-size: 0.95rem; line-height: 1.6; }
+.lp-contrib-actions { display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+.lp-contrib-actions .lp-btn { justify-content: center; text-decoration: none; }
+.lp-btn { text-decoration: none; }
+
 /* ---------- Footer ---------- */
+.lp-footer-links { display: flex; gap: 18px; }
+.lp-footer-links a, .lp-footer a { color: #94a3b8; text-decoration: none; }
+.lp-footer-links a:hover { color: #fff; }
 .lp-footer {
   display: flex;
   justify-content: space-between;
@@ -344,6 +367,7 @@ html, body {
   .lp-section { padding-bottom: 40px; }
   .landing-games-grid { grid-template-columns: 1fr; }
   .lp-footer { padding: 20px 16px; flex-direction: column; }
+  .lp-contrib { flex-direction: column; align-items: stretch; padding: 24px 20px; gap: 20px; }
 }
 
 /* =========================================================================
@@ -428,6 +452,7 @@ html, body {
 }
 .nav-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(148, 163, 184, 0.35); color: #fff; }
 .nav-btn:active { transform: translateY(1px); }
+a.nav-btn { text-decoration: none; }
 .nav-btn.primary { background: #38bdf8; border-color: #38bdf8; color: #04101c; }
 .nav-btn.primary:hover { background: #7dd3fc; border-color: #7dd3fc; color: #04101c; }
 .nav-btn.icon-btn { width: 36px; padding: 0; }
@@ -463,6 +488,7 @@ html, body {
   .nav-btn { height: 34px; width: 34px; }
 }
 @media (max-width: 480px) {
+  #btn-report-issue { display: none; }
   .game-badge { display: none; }
   .game-title { font-size: 0.88rem; }
 }

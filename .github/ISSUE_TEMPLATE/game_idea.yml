@@ -1,0 +1,35 @@
+name: Game or feature idea
+description: Suggest a new game, mode or improvement
+title: "[Idea] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        NoBurnout is for short, satisfying breaks. The best ideas are easy to learn and fun in a few minutes.
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What would you like to see, and why would it make a good break?
+    validations:
+      required: true
+  - type: dropdown
+    id: type
+    attributes:
+      label: What kind of idea is it?
+      options:
+        - New game
+        - New mode for an existing game
+        - Improvement to the site or UI
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: contribute
+    attributes:
+      label: Would you like to build it?
+      options:
+        - "Yes, I'd like to build it"
+        - "Maybe, with some guidance"
+        - "No, just suggesting"

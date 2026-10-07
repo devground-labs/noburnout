@@ -9,7 +9,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "description": "Modular 3D Web Game Framework built with Three.js and Cannon-es",
   "devDependencies": {
     "vite": "^4.5.3"
