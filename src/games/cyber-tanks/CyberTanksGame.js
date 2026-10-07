@@ -756,8 +756,10 @@ export class CyberTanksGame extends BaseGame {
       { x: 0, z: 8.5, w: 2.2, h: 2.2, d: 2.2, type: 'hedgehog', hp: 5 },
 
       // Flank Volatile Fuel Silos
-      { x: -17, z: 0, w: 2.0, h: 2.4, d: 2.0, type: 'barrel', hp: 2 },
-      { x: 17, z: 0, w: 2.0, h: 2.4, d: 2.0, type: 'barrel', hp: 2 },
+      { x: -20, z: 6.5, w: 2.0, h: 2.4, d: 2.0, type: 'barrel', hp: 2 },
+      { x: -20, z: -6.5, w: 2.0, h: 2.4, d: 2.0, type: 'barrel', hp: 2 },
+      { x: 20, z: 6.5, w: 2.0, h: 2.4, d: 2.0, type: 'barrel', hp: 2 },
+      { x: 20, z: -6.5, w: 2.0, h: 2.4, d: 2.0, type: 'barrel', hp: 2 },
       { x: -6, z: -16, w: 1.8, h: 2.2, d: 1.8, type: 'barrel', hp: 2 },
       { x: 6, z: -16, w: 1.8, h: 2.2, d: 1.8, type: 'barrel', hp: 2 },
       { x: -6, z: 16, w: 1.8, h: 2.2, d: 1.8, type: 'barrel', hp: 2 },
@@ -1201,10 +1203,10 @@ export class CyberTanksGame extends BaseGame {
 
               if (target.type === 'drone') {
                 target.mesh.visible = false;
-                this.showToast("DRONE DESTROYED! 🎯", `Streak x${this.pracStreak}! +150 Points`, '#10b981');
+                this.showToast("DRONE DESTROYED!", `Streak x${this.pracStreak}! +150 Points`, '#10b981');
               } else {
                 target.mesh.visible = false;
-                this.showToast("BULLSEYE HIT! 🎯", `Direct center hit! Streak x${this.pracStreak}!`, '#f59e0b');
+                this.showToast("BULLSEYE HIT!", `Direct center hit! Streak x${this.pracStreak}!`, '#f59e0b');
               }
 
               missile.detonate();
@@ -1220,7 +1222,7 @@ export class CyberTanksGame extends BaseGame {
           if (distToTarget <= targetTank.radius + 0.35) {
             targetTank.takeDamage(34);
             this.showToast(
-              "DIRECT HIT! 💥",
+              "DIRECT HIT!",
               `Player ${missile.ownerId} scored a heavy missile impact!`,
               missile.ownerId === 1 ? '#06b6d4' : '#f97316'
             );
@@ -1442,7 +1444,7 @@ export class CyberTanksGame extends BaseGame {
     const toggleBtn = document.getElementById('btnTogglePractice');
     if (bHud) bHud.style.display = 'none';
     if (pHud) pHud.style.display = 'flex';
-    if (toggleBtn) toggleBtn.textContent = '⚔️ Battle Mode';
+    if (toggleBtn) toggleBtn.textContent = 'Battle Mode';
 
     // Hide Player 2 tank
     this.p2.isDead = true;
@@ -1462,7 +1464,7 @@ export class CyberTanksGame extends BaseGame {
     this.pracShots = 0;
     this.pracStreak = 0;
 
-    this.showToast("PRACTICE RANGE 🎯", "Freely fire missiles at moving drones & bullseyes! No opponent.", "#38bdf8");
+    this.showToast("PRACTICE RANGE", "Freely fire missiles at moving drones & bullseyes! No opponent.", "#38bdf8");
   }
 
   enterBattleMode(mode = '2P') {
@@ -1474,7 +1476,7 @@ export class CyberTanksGame extends BaseGame {
     const toggleBtn = document.getElementById('btnTogglePractice');
     if (bHud) bHud.style.display = 'flex';
     if (pHud) pHud.style.display = 'none';
-    if (toggleBtn) toggleBtn.textContent = '🎯 Practice';
+    if (toggleBtn) toggleBtn.textContent = 'Practice';
 
     this.p1.RELOAD_TIME = 1.35;
     while (this.practiceGroup.children.length > 0) {
@@ -1509,11 +1511,16 @@ export class CyberTanksGame extends BaseGame {
     // Reset tanks
     this.p1.reset({ x: -16, z: 0 }, Math.PI / 2);
     this.p2.reset({ x: 16, z: 0 }, -Math.PI / 2);
+    this.aiReverseTimer = 0;
+    this.aiWaypoint = null;
+    this.aiStuckTimer = 0;
+    this.aiLastX = undefined;
+    this.aiLastZ = undefined;
 
     for (let m of this.activeMissiles) this.scene.remove(m.mesh);
     this.activeMissiles.length = 0;
 
-    this.showToast(`ROUND ${this.currentRound} OF 3! 🚀`, "Engage and destroy enemy tank!", "#38bdf8");
+    this.showToast(`ROUND ${this.currentRound} OF 3!`, "Engage and destroy enemy tank!", "#38bdf8");
   }
 
   checkRoundEnd() {
@@ -1524,22 +1531,22 @@ export class CyberTanksGame extends BaseGame {
 
       let roundWinner = "";
       let roundSub = "";
-      let roundEmoji = "🏆";
+      let roundEmoji = "";
 
       if (!this.p1.isDead && this.p2.isDead) {
         this.p1Wins++;
-        roundWinner = `🔵 PLAYER 1 WINS ROUND ${this.currentRound}!`;
+        roundWinner = `PLAYER 1 WINS ROUND ${this.currentRound}!`;
         roundSub = "Enemy armor obliterated by missile strike!";
-        roundEmoji = "🥇";
+        roundEmoji = "";
         this.playSfxWin();
       } else if (!this.p2.isDead && this.p1.isDead) {
         this.p2Wins++;
-        roundWinner = (this.gameMode === '1P' ? "🤖 AI BOT" : "🟠 PLAYER 2") + ` WINS ROUND ${this.currentRound}!`;
+        roundWinner = (this.gameMode === '1P' ? "AI BOT" : "PLAYER 2") + ` WINS ROUND ${this.currentRound}!`;
         roundSub = "Devastating missile barrage scored round victory!";
-        roundEmoji = "💥";
+        roundEmoji = "";
         this.playSfxWin();
       } else {
-        roundWinner = `MUTUAL DESTRUCTION (ROUND ${this.currentRound})! 🤝`;
+        roundWinner = `MUTUAL DESTRUCTION (ROUND ${this.currentRound})!`;
         roundSub = "Both tanks eliminated each other!";
       }
 
@@ -1559,17 +1566,17 @@ export class CyberTanksGame extends BaseGame {
 
         if (isMatchComplete) {
           if (this.p1Wins > this.p2Wins) {
-            if (titleEl) titleEl.textContent = "🔵 PLAYER 1 IS THE CHAMPION! 🏆";
+            if (titleEl) titleEl.textContent = "PLAYER 1 IS THE CHAMPION!";
             if (subEl) subEl.textContent = `3-Round Championship Won! Series Score: ${this.p1Wins} - ${this.p2Wins}`;
-            if (emojiEl) emojiEl.textContent = "🏆";
+            if (emojiEl) emojiEl.textContent = "";
           } else if (this.p2Wins > this.p1Wins) {
-            if (titleEl) titleEl.textContent = (this.gameMode === '1P' ? "🤖 AI BOT" : "🟠 PLAYER 2") + " IS THE CHAMPION! 🏆";
+            if (titleEl) titleEl.textContent = (this.gameMode === '1P' ? "AI BOT" : "PLAYER 2") + " IS THE CHAMPION!";
             if (subEl) subEl.textContent = `3-Round Championship Won! Series Score: ${this.p2Wins} - ${this.p1Wins}`;
-            if (emojiEl) emojiEl.textContent = "🏆";
+            if (emojiEl) emojiEl.textContent = "";
           } else {
-            if (titleEl) titleEl.textContent = "MATCH DRAW (3 ROUNDS)! 🤝";
+            if (titleEl) titleEl.textContent = "MATCH DRAW (3 ROUNDS)!";
             if (subEl) subEl.textContent = `Both combatants tied at ${this.p1Wins} - ${this.p2Wins}!`;
-            if (emojiEl) emojiEl.textContent = "🤝";
+            if (emojiEl) emojiEl.textContent = "";
           }
           if (playBtn) playBtn.textContent = "Play New Match (3 Rounds)";
         } else {
@@ -1588,34 +1595,103 @@ export class CyberTanksGame extends BaseGame {
   // =========================================================================
   // Autonomous AI (in 1P mode)
   // =========================================================================
+  /** Finds an obstacle in the AI's path by probing points ahead of the tank. */
+  findBlockingObstacle(tank) {
+    const fx = Math.sin(tank.rotation);
+    const fz = Math.cos(tank.rotation);
+    for (const d of [3, 5.5, 8]) {
+      const px = tank.x + fx * d;
+      const pz = tank.z + fz * d;
+      for (const obs of this.obstacles) {
+        if (Math.hypot(px - obs.x, pz - obs.z) < obs.radius + tank.radius * 0.9) return obs;
+      }
+    }
+    return null;
+  }
+
   updateAI(dt) {
     if (this.gameMode !== '1P' || this.p2.isDead || this.p1.isDead) return;
+    const ai = this.p2;
+    const wrap = (a) => {
+      while (a > Math.PI) a -= Math.PI * 2;
+      while (a < -Math.PI) a += Math.PI * 2;
+      return a;
+    };
 
-    const dx = this.p1.x - this.p2.x;
-    const dz = this.p1.z - this.p2.z;
+    const dx = this.p1.x - ai.x;
+    const dz = this.p1.z - ai.z;
     const dist = Math.hypot(dx, dz);
-    const targetAngle = Math.atan2(dx, dz);
+    const playerDiff = wrap(Math.atan2(dx, dz) - ai.rotation);
 
-    let angleDiff = targetAngle - this.p2.rotation;
-    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-
-    if (Math.abs(angleDiff) > 0.1) {
-      this.p2.rotation += Math.sign(angleDiff) * this.p2.TURN_SPEED * dt;
+    // --- Unstick: if barely moving while trying to drive, back out and turn ---
+    this.aiStuckTimer = (this.aiStuckTimer || 0) + dt;
+    if (this.aiStuckTimer >= 1.0) {
+      const moved = Math.hypot(ai.x - (this.aiLastX ?? ai.x), ai.z - (this.aiLastZ ?? ai.z));
+      this.aiLastX = ai.x;
+      this.aiLastZ = ai.z;
+      this.aiStuckTimer = 0;
+      if (moved < 0.6 && dist > 8) {
+        this.aiReverseTimer = 0.9;
+        this.aiReverseTurn = Math.random() < 0.5 ? -1 : 1;
+        this.aiWaypoint = null;
+      }
+    }
+    if (this.aiReverseTimer > 0) {
+      this.aiReverseTimer -= dt;
+      ai.speed = Math.max(-ai.MAX_SPEED * 0.5, ai.speed - ai.DECEL * dt);
+      ai.rotation += this.aiReverseTurn * ai.TURN_SPEED * dt;
+      return;
     }
 
-    if (dist > 18) {
-      this.p2.speed = Math.min(this.p2.MAX_SPEED, this.p2.speed + this.p2.ACCEL * dt);
+    // --- Detour: when an obstacle blocks the way, head for a waypoint beside it ---
+    if (this.aiWaypoint) {
+      this.aiWaypointTimer -= dt;
+      if (this.aiWaypointTimer <= 0 || Math.hypot(this.aiWaypoint.x - ai.x, this.aiWaypoint.z - ai.z) < 2.5) {
+        this.aiWaypoint = null;
+      }
+    }
+    if (!this.aiWaypoint) {
+      const blocker = this.findBlockingObstacle(ai);
+      if (blocker) {
+        const bx = blocker.x - ai.x;
+        const bz = blocker.z - ai.z;
+        const bl = Math.hypot(bx, bz) || 1;
+        const off = blocker.radius + ai.radius + 1.6;
+        // The two tangent points either side of the obstacle; pick the one nearer the player
+        const cands = [
+          { x: blocker.x + (bz / bl) * off, z: blocker.z - (bx / bl) * off },
+          { x: blocker.x - (bz / bl) * off, z: blocker.z + (bx / bl) * off }
+        ];
+        const dToPlayer = (c) => Math.hypot(this.p1.x - c.x, this.p1.z - c.z);
+        this.aiWaypoint = dToPlayer(cands[0]) <= dToPlayer(cands[1]) ? cands[0] : cands[1];
+        this.aiWaypointTimer = 3.0;
+      }
+    }
+
+    // --- Movement toward the waypoint (if any) or the player ---
+    const aim = this.aiWaypoint || this.p1;
+    const aimDiff = wrap(Math.atan2(aim.x - ai.x, aim.z - ai.z) - ai.rotation);
+    if (Math.abs(aimDiff) > 0.1) {
+      ai.rotation += Math.sign(aimDiff) * ai.TURN_SPEED * dt;
+    }
+
+    if (this.aiWaypoint) {
+      // Slow down while still turning toward the waypoint
+      const target = Math.abs(aimDiff) > 1.0 ? 2.0 : 7.0;
+      ai.speed = THREE.MathUtils.lerp(ai.speed, target, dt * 3.0);
+    } else if (dist > 18) {
+      ai.speed = Math.min(ai.MAX_SPEED, ai.speed + ai.ACCEL * dt);
     } else if (dist < 8) {
-      this.p2.speed = Math.max(-this.p2.MAX_SPEED * 0.5, this.p2.speed - this.p2.DECEL * dt);
+      ai.speed = Math.max(-ai.MAX_SPEED * 0.5, ai.speed - ai.DECEL * dt);
     } else {
-      this.p2.speed = THREE.MathUtils.lerp(this.p2.speed, 3.5, dt * 2.0);
+      ai.speed = THREE.MathUtils.lerp(ai.speed, 3.5, dt * 2.0);
     }
 
-    if (Math.abs(angleDiff) < 0.28 && dist < 35) {
+    // --- Fire whenever the barrel is roughly on the player ---
+    if (Math.abs(playerDiff) < 0.28 && dist < 35) {
       this.aiFireTimer -= dt;
-      if (this.aiFireTimer <= 0 && this.p2.canFire()) {
-        const m = this.p2.fireMissile();
+      if (this.aiFireTimer <= 0 && ai.canFire()) {
+        const m = ai.fireMissile();
         if (m) this.activeMissiles.push(m);
         this.aiFireTimer = 1.2 + Math.random() * 0.8;
       }
@@ -1657,8 +1733,10 @@ export class CyberTanksGame extends BaseGame {
       this.keys[e.code] = false;
     };
 
+    this._blurHandler = () => { this.keys = {}; };
     window.addEventListener('keydown', this._keyDownHandler);
     window.addEventListener('keyup', this._keyUpHandler);
+    window.addEventListener('blur', this._blurHandler);
   }
 
   processInputs(dt) {
@@ -1699,6 +1777,29 @@ export class CyberTanksGame extends BaseGame {
     }
   }
 
+  /** Keeps the two tanks from driving through each other. */
+  separateTanks() {
+    const a = this.p1;
+    const b = this.p2;
+    if (a.isDead || b.isDead || this.gameMode === 'PRACTICE') return;
+    const dx = b.x - a.x;
+    const dz = b.z - a.z;
+    const dist = Math.hypot(dx, dz);
+    const minDist = a.radius + b.radius;
+    if (dist >= minDist) return;
+    const nx = dist > 0.001 ? dx / dist : 1;
+    const nz = dist > 0.001 ? dz / dist : 0;
+    const push = (minDist - dist) / 2;
+    a.x -= nx * push;
+    a.z -= nz * push;
+    b.x += nx * push;
+    b.z += nz * push;
+    a.speed *= 0.6;
+    b.speed *= 0.6;
+    a.updateTransform();
+    b.updateTransform();
+  }
+
   // =========================================================================
   // Per-Frame Update Loop
   // =========================================================================
@@ -1721,6 +1822,7 @@ export class CyberTanksGame extends BaseGame {
     // Tank simulation
     this.p1.update(dt);
     this.p2.update(dt);
+    this.separateTanks();
 
     // Missile simulation
     for (let i = this.activeMissiles.length - 1; i >= 0; i--) {
@@ -1774,21 +1876,12 @@ export class CyberTanksGame extends BaseGame {
       <div class="tank-ui-layer">
         <!-- Top Status & Health Bar -->
         <header class="tank-top-bar">
-          <!-- Game Logo Badge -->
-          <div class="tank-logo-badge tank-glass interactive">
-            <div class="tank-logo-icon">🚀</div>
-            <div class="tank-logo-text">
-              <h1>CYBER TANKS</h1>
-              <span>3D Missile Combat</span>
-            </div>
-          </div>
-
           <!-- Health & Match Scoreboard (Battle Modes) -->
           <div class="tank-battle-hud tank-glass interactive" id="battleHud">
             <!-- Player 1 Status -->
             <div class="tank-status p1">
               <div class="tank-header p1">
-                <span>🔵 PLAYER 1</span>
+                <span>PLAYER 1</span>
                 <span class="tank-score-badge" id="p1Score">${this.p1Wins} WINS</span>
               </div>
               <div class="tank-hp-bar-outer">
@@ -1811,7 +1904,7 @@ export class CyberTanksGame extends BaseGame {
             <div class="tank-status p2">
               <div class="tank-header p2">
                 <span class="tank-score-badge" id="p2Score">${this.p2Wins} WINS</span>
-                <span id="p2Label">${this.gameMode === '1P' ? '🤖 AI TANK' : '🟠 PLAYER 2'}</span>
+                <span id="p2Label">${this.gameMode === '1P' ? 'AI TANK' : 'PLAYER 2'}</span>
               </div>
               <div class="tank-hp-bar-outer">
                 <div class="tank-hp-bar-inner p2" id="p2HpBar" style="width: 100%;"></div>
@@ -1827,7 +1920,6 @@ export class CyberTanksGame extends BaseGame {
           <!-- Practice Range Telemetry HUD (Practice Mode) -->
           <div class="tank-battle-hud tank-glass interactive" id="practiceHud" style="display: ${this.gameMode === 'PRACTICE' ? 'flex' : 'none'}; gap:20px; align-items:center;">
             <div style="display:flex; align-items:center; gap:8px;">
-              <span style="font-size:1.4rem;">🎯</span>
               <div>
                 <div style="font-family:'Orbitron', sans-serif; font-size:0.85rem; font-weight:800; color:#38bdf8;">TARGET RANGE</div>
                 <div style="font-size:0.7rem; color:#94a3b8;">NO OPPONENT · SOLO DRILL</div>
@@ -1854,17 +1946,17 @@ export class CyberTanksGame extends BaseGame {
             <div style="width:1px; height:26px; background:rgba(255,255,255,0.12);"></div>
 
             <button id="btnRespawnTargets" class="tank-nav-link-btn" style="cursor:pointer; border-radius:10px; padding:6px 12px; background:rgba(56,189,248,0.15); border-color:#38bdf8; color:#38bdf8;">
-              🔄 Respawn Targets
+              Respawn Targets
             </button>
           </div>
 
           <!-- Quick Actions & Camera Controls -->
           <div class="tank-top-actions interactive">
             <button class="tank-nav-link-btn" id="btnTogglePractice" title="Toggle Practice Range / Battle" style="cursor:pointer; color:#38bdf8; border-color:rgba(56,189,248,0.3);">
-              ${this.gameMode === 'PRACTICE' ? '⚔️ Battle Mode' : '🎯 Practice'}
+              ${this.gameMode === 'PRACTICE' ? 'Battle Mode' : 'Practice'}
             </button>
-            <button class="tank-btn-icon" id="btnCamView" title="Toggle Camera View (Tactical / Overhead / Action)">🎥</button>
-            <button class="tank-btn-icon" id="btnSoundTank" title="Toggle Sound">🔊</button>
+            <button class="tank-btn-icon" id="btnCamView" title="Toggle Camera View (Tactical / Overhead / Action)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h4l2-3h6l2 3h4v11H3zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg></button>
+            <button class="tank-btn-icon" id="btnSoundTank" title="Toggle Sound"><svg class="ic ic-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg><svg class="ic ic-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4zM22 9l-6 6M16 9l6 6"/></svg></button>
           </div>
         </header>
 
@@ -1879,7 +1971,7 @@ export class CyberTanksGame extends BaseGame {
           <!-- Player 1 Controls Card -->
           <div class="tank-control-guide-card tank-glass interactive">
             <div class="tank-guide-col">
-              <div class="tank-guide-title p1">🔵 PLAYER 1</div>
+              <div class="tank-guide-title p1">PLAYER 1</div>
               <div class="tank-key-caps">
                 <span>Drive:</span> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
               </div>
@@ -1905,7 +1997,7 @@ export class CyberTanksGame extends BaseGame {
           <!-- Player 2 Controls Card -->
           <div class="tank-control-guide-card tank-glass interactive">
             <div class="tank-guide-col" style="align-items: flex-end; text-align: right;">
-              <div class="tank-guide-title p2" id="p2GuideTitle">${this.gameMode === '1P' ? '🤖 AI BOT (AUTONOMOUS)' : '🟠 PLAYER 2'}</div>
+              <div class="tank-guide-title p2" id="p2GuideTitle">${this.gameMode === '1P' ? 'AI BOT (AUTONOMOUS)' : 'PLAYER 2'}</div>
               <div class="tank-key-caps">
                 <span>Drive:</span> <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd>
               </div>
@@ -1919,7 +2011,7 @@ export class CyberTanksGame extends BaseGame {
         <!-- Round / Match Over Modal -->
         <div class="tank-modal-overlay" id="roundModal" style="display: none;">
           <div class="tank-modal-box tank-glass interactive">
-            <div id="winnerEmoji" style="font-size: 3.5rem;">🏆</div>
+            <div id="winnerEmoji" style="font-size: 3.5rem;"></div>
             <h2 class="tank-modal-title" id="winnerTitle">PLAYER 1 WINS!</h2>
             <p class="tank-modal-sub" id="winnerSubtitle">Dominant missile strikes eliminated the enemy tank!</p>
 
@@ -2004,8 +2096,8 @@ export class CyberTanksGame extends BaseGame {
     if (p1ScoreEl) p1ScoreEl.textContent = `${this.p1Wins} WINS`;
     if (p2ScoreEl) p2ScoreEl.textContent = `${this.p2Wins} WINS`;
     if (roundEl) roundEl.textContent = this.gameMode === 'PRACTICE' ? 'FREE PRACTICE' : `ROUND ${this.currentRound} / 3`;
-    if (p2Label) p2Label.textContent = this.gameMode === '1P' ? '🤖 AI TANK' : '🟠 PLAYER 2';
-    if (p2GuideTitle) p2GuideTitle.textContent = this.gameMode === '1P' ? '🤖 AI BOT (AUTONOMOUS)' : '🟠 PLAYER 2';
+    if (p2Label) p2Label.textContent = this.gameMode === '1P' ? 'AI TANK' : 'PLAYER 2';
+    if (p2GuideTitle) p2GuideTitle.textContent = this.gameMode === '1P' ? 'AI BOT (AUTONOMOUS)' : 'PLAYER 2';
 
     // 4. Practice Telemetry
     if (this.gameMode === 'PRACTICE') {
@@ -2058,7 +2150,7 @@ export class CyberTanksGame extends BaseGame {
         this.initAudio();
         this.spawnPracticeTargets();
         this.spawnObstacles();
-        this.showToast("TARGETS RESET! 🔄", "New wave of hovering drones and bullseyes ready!", "#10b981");
+        this.showToast("TARGETS RESET!", "New wave of hovering drones and bullseyes ready!", "#10b981");
       });
     }
 
@@ -2077,7 +2169,7 @@ export class CyberTanksGame extends BaseGame {
       btnSound._bound = true;
       btnSound.addEventListener('click', () => {
         this.soundEnabled = !this.soundEnabled;
-        btnSound.textContent = this.soundEnabled ? '🔊' : '🔇';
+        btnSound.classList.toggle('is-muted', !this.soundEnabled);
         this.showToast("AUDIO", this.soundEnabled ? "Sound Effects ON" : "Sound Muted", this.soundEnabled ? '#10b981' : '#ef4444');
       });
     }
@@ -2124,7 +2216,7 @@ export class CyberTanksGame extends BaseGame {
       { label: 'Player 1 Fire Missiles', keys: 'Space or F' },
       { label: 'Player 2 Drive & Steer', keys: 'Arrow Keys (↑ ← ↓ →)' },
       { label: 'Player 2 Fire Missiles', keys: 'Enter or M or Numpad 0' },
-      { label: 'Cycle Camera Perspective', keys: '🎥 Button in Top Bar or [C]' },
+      { label: 'Cycle Camera Perspective', keys: 'Button in Top Bar or [C]' },
       { label: 'Tournament Rule', keys: 'Strictly 3 Rounds per Championship Match' },
       { label: 'Solo Practice Range', keys: 'Freely practice against drones & targets' }
     ];
@@ -2135,6 +2227,7 @@ export class CyberTanksGame extends BaseGame {
 
     if (this._keyDownHandler) window.removeEventListener('keydown', this._keyDownHandler);
     if (this._keyUpHandler) window.removeEventListener('keyup', this._keyUpHandler);
+    if (this._blurHandler) window.removeEventListener('blur', this._blurHandler);
 
     // Remove meshes
     if (this.p1 && this.p1.mesh) this.scene.remove(this.p1.mesh);

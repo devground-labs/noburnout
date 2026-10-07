@@ -139,7 +139,10 @@ export class AstroBlasterGame extends BaseGame {
     this.ship.targetY = 0;
 
     const modal = document.getElementById('astro-gameover-modal');
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+      modal.style.display = 'none';
+      modal.classList.remove('active');
+    }
   }
 
   spawnPlanet() {
@@ -520,7 +523,10 @@ export class AstroBlasterGame extends BaseGame {
     const modal = document.getElementById('astro-gameover-modal');
     const finalScore = document.getElementById('astro-final-score');
     if (finalScore) finalScore.textContent = `${this.score.toLocaleString()} PTS`;
-    if (modal) modal.style.display = 'flex';
+    if (modal) {
+      modal.style.display = 'flex';
+      modal.classList.add('active'); // the shared overlay rule hides it unless .active is set
+    }
   }
 
   getHUDHtml() {
@@ -537,21 +543,18 @@ export class AstroBlasterGame extends BaseGame {
             <div class="astro-multiplier-val" id="astro-mult">x1.0</div>
           </div>
           <div>
-            <div class="astro-score-label">SHIELD INTEGRITY</div>
-            <div style="width: 140px; height: 10px; background: rgba(255, 255, 255, 0.15); border-radius: 5px; overflow: hidden; margin-top: 4px;">
-              <div id="astro-shield-fill" style="width: 100%; height: 100%; background: #38bdf8; transition: width 0.2s ease-out;"></div>
-            </div>
+            <div class="astro-score-label">SHIELD</div>
+            <div class="astro-shield"><div class="astro-shield-fill" id="astro-shield-fill"></div></div>
           </div>
         </div>
 
         <!-- Game Over Modal -->
         <div class="tank-modal-overlay" id="astro-gameover-modal" style="display: none;">
           <div class="tank-modal-box">
-            <div style="font-size: 3rem;">💥</div>
-            <h2>MISSION TERMINATED</h2>
-            <p style="color: #94a3b8; font-size: 0.95rem; margin: 8px 0 16px;">Ship shields collapsed under asteroid impact.</p>
-            <div style="font-size: 1.6rem; font-weight: 800; color: #38bdf8; margin-bottom: 20px;" id="astro-final-score">0 PTS</div>
-            <button class="primary-btn" id="astro-btn-restart">Relaunch Starfighter 🚀</button>
+            <h2>Mission terminated</h2>
+            <p class="tank-modal-sub">Ship shields collapsed under asteroid impact.</p>
+            <div class="astro-final" id="astro-final-score">0 PTS</div>
+            <button class="primary-btn" id="astro-btn-restart">Relaunch starfighter</button>
           </div>
         </div>
       </div>

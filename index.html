@@ -16,98 +16,123 @@
 
   <!-- Fullscreen Landing Page & Game Selector -->
   <section class="landing-page" id="landing-page">
-    <div class="landing-header">
-      <div class="brand">
-        <span class="brand-icon">⚡</span>
-        <span class="brand-title">NEXUS ARCADE</span>
+    <header class="lp-nav">
+      <div class="lp-nav-inner">
+        <a class="lp-brand" data-scroll="lp-top" href="#" aria-label="Nexus Arcade home">
+          <svg class="lp-logo" viewBox="0 0 32 32" aria-hidden="true">
+            <defs><linearGradient id="lpg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs>
+            <rect width="32" height="32" rx="9" fill="url(#lpg)"/>
+            <path d="M18.5 5 9 18h6l-1.5 9L23 14h-6z" fill="#fff"/>
+          </svg>
+          <span>Nexus Arcade</span>
+        </a>
+        <nav class="lp-links" aria-label="Sections">
+          <a href="#" data-scroll="lp-games">Games</a>
+          <a href="#" data-scroll="lp-features">Features</a>
+        </nav>
+        <div class="landing-header-actions">
+          <button class="nav-btn icon-btn" id="landing-sound-toggle" title="Toggle Sound" aria-label="Toggle sound"><svg class="ic ic-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg><svg class="ic ic-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4zM22 9l-6 6M16 9l6 6"/></svg></button>
+          <button class="nav-btn icon-btn" id="landing-fullscreen" title="Toggle Fullscreen" aria-label="Toggle fullscreen"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+        </div>
       </div>
-      <div class="landing-header-actions">
-        <button class="nav-btn icon-btn" id="landing-sound-toggle" title="Toggle Sound">
-          🔊
-        </button>
-        <button class="nav-btn icon-btn" id="landing-fullscreen" title="Toggle Fullscreen">
-          ⛶
-        </button>
-      </div>
-    </div>
+    </header>
 
-    <div class="landing-hero">
-      <div class="hero-badge">⚡ 3D WEBGL ARCADE PLATFORM</div>
-      <h1 class="hero-title">SELECT YOUR BATTLEGROUND</h1>
-      <p class="hero-subtitle">High-octane browser games powered by Three.js real-time rendering, Cannon-es physics, and procedural synthesizer audio.</p>
-    </div>
+    <main class="lp-container" id="lp-top">
+      <section class="lp-hero">
+        <span class="lp-eyebrow"><i></i>Free to play · No downloads</span>
+        <h1 class="lp-title">Instant 3D arcade games,<br><span>right in your browser.</span></h1>
+        <p class="lp-lead">A curated collection of fast, polished games built on real-time WebGL. Pick a game, choose a mode and play in seconds on desktop or mobile.</p>
+        <div class="lp-cta">
+          <button class="lp-btn primary" data-scroll="lp-games" type="button">Browse games
+            <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M10 3v12m0 0-5-5m5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="lp-btn ghost" data-scroll="lp-features" type="button">See what's inside</button>
+        </div>
+        <dl class="lp-stats">
+          <div><dt id="lp-game-count">4</dt><dd>Games</dd></div>
+          <div><dt>1–2</dt><dd>Players</dd></div>
+          <div><dt>60</dt><dd>FPS target</dd></div>
+          <div><dt>0</dt><dd>Installs</dd></div>
+        </dl>
+      </section>
 
-    <!-- Interactive Game Selection Cards -->
-    <div class="landing-games-grid" id="landing-games-grid">
-      <!-- Injected dynamically by UIManager -->
-    </div>
+      <section class="lp-section" id="lp-games">
+        <div class="lp-section-head">
+          <h2>Choose a game</h2>
+          <p>Select a mode on any card, then press Play.</p>
+        </div>
+        <div class="landing-games-grid" id="landing-games-grid">
+          <!-- Injected dynamically by UIManager -->
+        </div>
+      </section>
 
-    <!-- Tech Specs & Highlights Footer -->
-    <div class="landing-footer glass">
-      <div class="spec-item">
-        <span class="spec-icon">🔮</span>
-        <div>
-          <div class="spec-label">Three.js 3D</div>
-          <div class="spec-val">Realtime WebGL</div>
+      <section class="lp-section" id="lp-features">
+        <div class="lp-section-head">
+          <h2>Built for smooth play</h2>
+          <p>A shared engine keeps every game fast, consistent and easy to pick up.</p>
         </div>
-      </div>
-      <div class="spec-divider"></div>
-      <div class="spec-item">
-        <span class="spec-icon">💥</span>
-        <div>
-          <div class="spec-label">Cannon Physics</div>
-          <div class="spec-val">Rigid-Body 60 FPS</div>
+        <div class="lp-features">
+          <article class="lp-feature">
+            <span class="lp-ficon"><svg viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z M12 12l8-4.5M12 12v9M12 12 4 7.5"/></svg></span>
+            <h3>Real-time 3D</h3>
+            <p>Hardware-accelerated WebGL rendering with lighting, shadows and post-effects.</p>
+          </article>
+          <article class="lp-feature">
+            <span class="lp-ficon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg></span>
+            <h3>Rigid-body physics</h3>
+            <p>Collisions and movement that feel weighty and responsive at a steady frame rate.</p>
+          </article>
+          <article class="lp-feature">
+            <span class="lp-ficon"><svg viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></span>
+            <h3>Procedural audio</h3>
+            <p>Sound effects are synthesized live with Web Audio, so there is nothing extra to load.</p>
+          </article>
+          <article class="lp-feature">
+            <span class="lp-ficon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 19c0-3.3 2.7-6 6-6s6 2.7 6 6M15 14.2c.6-.2 1.3-.3 2-.3 2.2 0 4 1.8 4 4"/></svg></span>
+            <h3>Solo or head-to-head</h3>
+            <p>Play against AI, practise on your own or share one keyboard with a friend.</p>
+          </article>
         </div>
-      </div>
-      <div class="spec-divider"></div>
-      <div class="spec-item">
-        <span class="spec-icon">🔊</span>
-        <div>
-          <div class="spec-label">Procedural Audio</div>
-          <div class="spec-val">Web Audio Synth</div>
-        </div>
-      </div>
-      <div class="spec-divider"></div>
-      <div class="spec-item">
-        <span class="spec-icon">👥</span>
-        <div>
-          <div class="spec-label">Multi-Mode</div>
-          <div class="spec-val">AI & 2-Player Local</div>
-        </div>
-      </div>
-    </div>
+      </section>
+    </main>
+
+    <footer class="lp-footer">
+      <span>© Nexus Arcade</span>
+      <span>Built with Three.js &amp; Web Audio</span>
+    </footer>
   </section>
 
   <!-- Arcade Top Navigation Bar (Active during gameplay) -->
-  <header class="arcade-navbar glass" id="arcade-navbar" style="display: none;">
+  <header class="arcade-navbar" id="arcade-navbar" style="display: none;">
     <div class="nav-left">
-      <div class="brand" id="nav-brand-home" title="Return to Landing Page">
-        <span class="brand-icon">⚡</span>
-        <span class="brand-title">NEXUS ARCADE</span>
-      </div>
-      <div class="divider"></div>
+      <a class="nav-brand" id="nav-brand-home" href="#" title="Return to Landing Page" aria-label="Nexus Arcade home">
+        <svg class="lp-logo" viewBox="0 0 32 32" aria-hidden="true">
+          <defs><linearGradient id="nbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs>
+          <rect width="32" height="32" rx="9" fill="url(#nbg)"/>
+          <path d="M18.5 5 9 18h6l-1.5 9L23 14h-6z" fill="#fff"/>
+        </svg>
+        <span class="nav-brand-text">Nexus Arcade</span>
+      </a>
+      <span class="nav-sep" aria-hidden="true">/</span>
       <div class="game-info">
-        <span class="game-badge" id="current-game-badge">3D WebGL</span>
         <span class="game-title" id="current-game-title">Game Title</span>
+        <span class="game-badge" id="current-game-badge">3D WebGL</span>
       </div>
     </div>
 
     <div class="nav-right">
-      <button class="nav-btn primary" id="btn-return-lobby" title="Back to Games Landing Page">
-        <span>🏠</span> Lobby
+      <button class="nav-btn primary" id="btn-return-lobby" title="Back to all games">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8M5 10v10h14V10M10 20v-6h4v6"/></svg><span class="btn-label">Lobby</span>
       </button>
       <button class="nav-btn" id="btn-open-games" title="Switch to another game">
-        <span>🎮</span> Switch Game
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg><span class="btn-label">Switch game</span>
       </button>
-      <button class="nav-btn" id="btn-open-help" title="Game Controls">
-        <span>⌨️</span> Controls
+      <button class="nav-btn" id="btn-open-help" title="Game controls">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v12H3zM7 10h.01M11 10h.01M15 10h.01M19 10h.01M7 14h10"/></svg><span class="btn-label">Controls</span>
       </button>
-      <button class="nav-btn icon-btn" id="btn-sound-toggle" title="Toggle Sound">
-        🔊
-      </button>
-      <button class="nav-btn icon-btn" id="btn-fullscreen" title="Toggle Fullscreen">
-        ⛶
-      </button>
+      <span class="nav-sep v" aria-hidden="true"></span>
+      <button class="nav-btn icon-btn" id="btn-sound-toggle" title="Toggle sound" aria-label="Toggle sound"><svg class="ic ic-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg><svg class="ic ic-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4zM22 9l-6 6M16 9l6 6"/></svg></button>
+      <button class="nav-btn icon-btn" id="btn-fullscreen" title="Toggle fullscreen" aria-label="Toggle fullscreen"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
       <div class="fps-pill" id="hud-fps">60 FPS</div>
     </div>
   </header>
@@ -120,13 +145,13 @@
 
   <!-- Games Selection Modal (Quick Switcher) -->
   <div class="modal-overlay" id="modal-games">
-    <div class="modal-window glass">
+    <div class="modal-window">
       <div class="modal-header">
         <div>
-          <h2 class="modal-title">🕹️ ARCADE GAME SELECTOR</h2>
-          <p class="modal-subtitle">Pick any game powered by the Three.js & Physics Game Framework</p>
+          <h2 class="modal-title">Switch game</h2>
+          <p class="modal-subtitle">Pick a game and mode. Your current game will close.</p>
         </div>
-        <button class="modal-close-btn" id="btn-close-games">&times;</button>
+        <button class="modal-close-btn" id="btn-close-games" aria-label="Close">&times;</button>
       </div>
       <div class="games-grid" id="games-list-grid">
         <!-- Rendered dynamically by UIManager -->
@@ -136,13 +161,13 @@
 
   <!-- Controls / Help Modal -->
   <div class="modal-overlay" id="modal-help">
-    <div class="modal-window glass modal-window-sm">
+    <div class="modal-window modal-window-sm">
       <div class="modal-header">
         <div>
-          <h2 class="modal-title">⌨️ GAME CONTROLS & RULES</h2>
-          <p class="modal-subtitle">Direct keyboard and mouse bindings</p>
+          <h2 class="modal-title">Controls</h2>
+          <p class="modal-subtitle">Keyboard, mouse and touch bindings for this game</p>
         </div>
-        <button class="modal-close-btn" id="btn-close-help">&times;</button>
+        <button class="modal-close-btn" id="btn-close-help" aria-label="Close">&times;</button>
       </div>
       <div class="controls-list" id="help-controls-list">
         <!-- Rendered dynamically by UIManager -->

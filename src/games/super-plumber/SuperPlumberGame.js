@@ -284,7 +284,7 @@ export class SuperPlumberGame extends BaseGame {
     // Dynamic Lighting
     const hemiLight = new THREE.HemisphereLight(
       isUnderground ? 0x38bdf8 : 0xffffff,
-      isUnderground ? 0x0f172a : 0x16a34a,
+      isUnderground ? 0x0f172a : 0x64748b,
       isUnderground ? 0.7 : 0.95
     );
     this.scene.add(hemiLight);
@@ -312,7 +312,7 @@ export class SuperPlumberGame extends BaseGame {
     this.particles = [];
     this.clouds = [];
 
-    // Background Scenery (Hills, Bushes, Clouds)
+    // Background Scenery (none in the grassland level)
     if (!isUnderground) {
       this.buildGrasslandScenery();
     } else {
@@ -327,54 +327,7 @@ export class SuperPlumberGame extends BaseGame {
   }
 
   buildGrasslandScenery() {
-    // Parallax Clouds
-    const cloudMat = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      roughness: 0.9,
-      metalness: 0
-    });
-
-    for (let i = 0; i < 18; i++) {
-      const cloud = new THREE.Group();
-      const numPuffs = 3 + Math.floor(Math.random() * 3);
-      for (let p = 0; p < numPuffs; p++) {
-        const puffGeo = new THREE.SphereGeometry(1.2 + Math.random() * 0.8, 10, 8);
-        const puff = new THREE.Mesh(puffGeo, cloudMat);
-        puff.position.set(p * 1.4 - (numPuffs * 0.7), Math.sin(p) * 0.4, 0);
-        cloud.add(puff);
-      }
-      cloud.position.set(i * 12 - 10, 10 + Math.random() * 6, -10 - Math.random() * 6);
-      this.scene.add(cloud);
-      this.clouds.push(cloud);
-    }
-
-    // Rolling Green Hills with cartoon dots
-    const hillMat = new THREE.MeshStandardMaterial({
-      color: 0x22c55e,
-      roughness: 0.8,
-      metalness: 0.05
-    });
-
-    for (let i = 0; i < 12; i++) {
-      const hillGeo = new THREE.ConeGeometry(5 + (i % 3) * 2, 7 + (i % 2) * 3, 16);
-      const hill = new THREE.Mesh(hillGeo, hillMat);
-      hill.position.set(i * 18 - 8, 2, -5 - (i % 2) * 3);
-      this.scene.add(hill);
-    }
-
-    // Bushes
-    const bushMat = new THREE.MeshStandardMaterial({
-      color: 0x16a34a,
-      roughness: 0.7
-    });
-
-    for (let i = 0; i < 16; i++) {
-      const bushGeo = new THREE.SphereGeometry(1.2, 10, 8);
-      bushGeo.scale(1.8, 1, 0.8);
-      const bush = new THREE.Mesh(bushGeo, bushMat);
-      bush.position.set(i * 14 + 4, 0.7, -1.8);
-      this.scene.add(bush);
-    }
+    // Intentionally empty: plain sky, simple road, pipes and enemies only.
   }
 
   buildCavernScenery() {
@@ -396,12 +349,12 @@ export class SuperPlumberGame extends BaseGame {
   generateLevelGeometry(isUnderground) {
     // Materials
     const grassTopMat = new THREE.MeshStandardMaterial({
-      color: isUnderground ? 0x0284c7 : 0x22c55e,
+      color: isUnderground ? 0x0284c7 : 0x94a3b8,
       roughness: 0.7
     });
 
     const dirtMat = new THREE.MeshStandardMaterial({
-      color: isUnderground ? 0x0f172a : 0x78350f,
+      color: isUnderground ? 0x0f172a : 0x334155,
       roughness: 0.85
     });
 
@@ -527,7 +480,7 @@ export class SuperPlumberGame extends BaseGame {
     };
 
     // Helper: Add Koopa
-    const addKoopa = (x, y = 0.7) => {
+    const addKoopa = (x, y = 0) => {
       const k = PlumberModel.createKoopa();
       k.position.set(x, y, 0);
       this.scene.add(k);
@@ -557,12 +510,12 @@ export class SuperPlumberGame extends BaseGame {
     addQBlock(10, 6.8, 'fireflower'); // Elevated Fire Flower block!
 
     // First patrolling Goomba
-    addGoomba(15, 0.5);
-    addGoomba(19, 0.5);
+    addGoomba(15, 0);
+    addGoomba(19, 0);
 
     // Pipes of increasing height
     addPipe(21, 2.4, false);
-    addGoomba(24, 0.5);
+    addGoomba(24, 0);
     addPipe(27, 3.2, true);
     addPipe(31, 4.0, false);
 
@@ -583,9 +536,9 @@ export class SuperPlumberGame extends BaseGame {
       addCoin(bx, 5.5);
     }
 
-    addGoomba(44, 0.5);
-    addGoomba(46, 0.5);
-    addKoopa(51, 0.7); // Koopa turtle!
+    addGoomba(44, 0);
+    addGoomba(46, 0);
+    addKoopa(51, 0); // Koopa turtle!
 
     // High platform with multi-coin rewards
     addBrick(54, 4.0);
@@ -596,8 +549,8 @@ export class SuperPlumberGame extends BaseGame {
     addCoin(56, 7.0);
 
     addPipe(60, 3.0, true);
-    addGoomba(63, 0.5);
-    addKoopa(66, 0.7);
+    addGoomba(63, 0);
+    addKoopa(66, 0);
 
     // 4. Chasm / Pit 2 (X: 69 to 73)
 
@@ -735,7 +688,7 @@ export class SuperPlumberGame extends BaseGame {
     if (isRight) moveDir += 1;
 
     // Fireball Throw on tap
-    if ((input.isJustPressed('KeyF') || input.isJustPressed('KeyX') || this._touchFireJustPressed) && this.form === 'fire') {
+    if ((input.wasJustPressed('KeyF') || input.wasJustPressed('KeyX') || this._touchFireJustPressed) && this.form === 'fire') {
       this._touchFireJustPressed = false;
       this.throwFireball();
     }
@@ -1093,6 +1046,12 @@ export class SuperPlumberGame extends BaseGame {
       } else {
         // Normal patrol movement
         e.x += e.vx * dt;
+        this.applyGravity(e, 0.4, dt);
+        if (e.y < -6) {
+          e.alive = false;
+          this.scene.remove(e.mesh);
+          continue;
+        }
         e.mesh.position.x = e.x;
         e.mesh.position.y = e.y;
 
@@ -1185,8 +1144,8 @@ export class SuperPlumberGame extends BaseGame {
       if (pw.collected) continue;
 
       if (pw.type === 'mushroom') {
-        pw.x += pw.vx * dt;
-        pw.mesh.position.x = pw.x;
+        this.stepMushroom(pw, dt);
+        if (pw.collected) continue;
       }
 
       if (Math.hypot(p.x - pw.x, p.y - pw.y) < 1.0) {
@@ -1215,6 +1174,66 @@ export class SuperPlumberGame extends BaseGame {
         }
       }
     }
+  }
+
+  /** Collects every solid surface (blocks + pipes) as {left,right,bottom,top}. */
+  getSolids() {
+    const solids = [];
+    for (const b of this.levelBlocks) {
+      if (b.type === 'brick' && b.isDestroyed) continue;
+      solids.push({ left: b.x - b.w / 2, right: b.x + b.w / 2, bottom: b.y - b.h, top: b.y });
+    }
+    for (const pipe of this.levelPipes) {
+      solids.push({ left: pipe.x - pipe.w / 2, right: pipe.x + pipe.w / 2, bottom: 0, top: pipe.h });
+    }
+    return solids;
+  }
+
+  /** Applies gravity to an entity with x/y/vy and lands it on top of any surface beneath. */
+  applyGravity(ent, halfW, dt, solids = this.getSolids()) {
+    const prevY = ent.y;
+    ent.vy += this.gravity * dt;
+    ent.y += ent.vy * dt;
+    if (ent.vy > 0) return;
+    for (const s of solids) {
+      if (ent.x + halfW > s.left + 0.08 && ent.x - halfW < s.right - 0.08 &&
+          prevY >= s.top - 0.05 && ent.y <= s.top) {
+        ent.y = s.top;
+        ent.vy = 0;
+      }
+    }
+  }
+
+  /** Gravity, landing on blocks/pipes/ground, and turning at walls for a mushroom. */
+  stepMushroom(pw, dt) {
+    const halfW = 0.4;
+    const height = 0.8;
+
+    const solids = this.getSolids();
+
+    // Horizontal move, reversing direction when it hits a wall
+    pw.x += pw.vx * dt;
+    for (const s of solids) {
+      if (pw.y >= s.top - 0.05 || pw.y + height <= s.bottom + 0.05) continue;
+      if (pw.vx > 0 && pw.x + halfW > s.left && pw.x - halfW < s.left) {
+        pw.x = s.left - halfW;
+        pw.vx = -pw.vx;
+      } else if (pw.vx < 0 && pw.x - halfW < s.right && pw.x + halfW > s.right) {
+        pw.x = s.right + halfW;
+        pw.vx = -pw.vx;
+      }
+    }
+
+    this.applyGravity(pw, halfW, dt, solids);
+
+    // Fell into a chasm
+    if (pw.y < -6) {
+      pw.collected = true;
+      this.scene.remove(pw.mesh);
+      return;
+    }
+
+    pw.mesh.position.set(pw.x, pw.y, 0);
   }
 
   updateFireballs(dt) {
