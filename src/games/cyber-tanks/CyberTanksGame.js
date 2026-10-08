@@ -49,6 +49,19 @@ export class CyberTanksGame extends BaseGame {
 
     // AI state
     this.aiFireTimer = 0.8;
+    this.aiDifficulty = 'Normal';
+    this.isTouch = window.matchMedia('(pointer: coarse)').matches;
+    this.aimAssist = this.isTouch;
+    try {
+      const saved = localStorage.getItem('tankAimAssist');
+      if (saved !== null) this.aimAssist = saved === '1';
+    } catch (_) {}
+    try { this.aiDifficulty = localStorage.getItem('tankAiDifficulty') || 'Normal'; } catch (_) {}
+    this.AI_LEVELS = {
+      Easy:   { tol: 0.14, fireMin: 2.2, fireVar: 1.0, speed: 0.75, turn: 0.8 },
+      Normal: { tol: 0.22, fireMin: 1.6, fireVar: 0.9, speed: 0.9,  turn: 0.95 },
+      Hard:   { tol: 0.30, fireMin: 1.0, fireVar: 0.6, speed: 1.0,  turn: 1.0 }
+    };
 
     // Practice Telemetry
     this.pracHits = 0;
@@ -205,8 +218,8 @@ export class CyberTanksGame extends BaseGame {
     const sunLight = new THREE.DirectionalLight(0xffffff, 2.2);
     sunLight.position.set(28, 48, 22);
     sunLight.castShadow = true;
-    sunLight.shadow.mapSize.width = 2048;
-    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.mapSize.width = 1024;
+    sunLight.shadow.mapSize.height = 1024;
     sunLight.shadow.camera.near = 0.5;
     sunLight.shadow.camera.far = 120;
     const shadowD = 35;
@@ -550,16 +563,6 @@ export class CyberTanksGame extends BaseGame {
       lens.rotation.x = 0.45;
       tower.add(lens);
 
-      const spot = new THREE.SpotLight(0xf1f5f9, 3.8, 95, Math.PI / 3, 0.45, 1.0);
-      spot.position.set(0, 19, 1.2);
-      spot.target.position.set(0, 0, 20);
-      tower.add(spot);
-      tower.add(spot.target);
-
-      const floodGlow = new THREE.PointLight(0xe2e8f0, 2.2, 35);
-      floodGlow.position.set(0, 19, 1.5);
-      tower.add(floodGlow);
-
       const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 12), hazardNeonMat);
       beacon.position.y = 20.6;
       tower.add(beacon);
@@ -843,10 +846,6 @@ export class CyberTanksGame extends BaseGame {
       ring.rotation.x = Math.PI / 2;
       drone.add(ring);
 
-      const light = new THREE.PointLight(0x38bdf8, 1.5, 8);
-      light.position.y = -0.5;
-      drone.add(light);
-
       drone.position.set(cfg.x, 2.4, cfg.z);
       this.practiceGroup.add(drone);
 
@@ -997,6 +996,8 @@ export class CyberTanksGame extends BaseGame {
         controller.hp = Math.max(0, controller.hp - amount);
         this.playSfxHit();
         this.spawnSparkBurst(new THREE.Vector3(controller.x, 1.0, controller.z), 18);
+        this.addShake(Math.min(1, 0.3 + amount / 60));
+        if (controller === this.p1) { this.flashDamage(); this.vibrate([40, 30, 40]); }
         if (controller.hp <= 0) {
           controller.destroy();
         }
@@ -1018,6 +1019,7 @@ export class CyberTanksGame extends BaseGame {
         controller.ammo--;
         controller.recoil = 1.0;
         this.playSfxFire();
+        if (controller === this.p1) this.vibrate(15);
 
         if (this.gameMode === 'PRACTICE' && controller.id === 1) {
           this.pracShots++;
@@ -1120,10 +1122,6 @@ export class CyberTanksGame extends BaseGame {
       fin.position.z = -0.35;
       mesh.add(fin);
     }
-
-    const thrustLight = new THREE.PointLight(glowColor, 1.8, 8);
-    thrustLight.position.set(0, 0, -0.45);
-    mesh.add(thrustLight);
 
     mesh.position.copy(pos);
     mesh.rotation.y = headingAngle;
@@ -1338,12 +1336,9 @@ export class CyberTanksGame extends BaseGame {
   }
 
   spawnMegaExplosion(pos) {
+    this.addShake(0.6);
+    this.hitPause = 0.05;
     this.spawnScorchCrater(pos);
-
-    const blastLight = new THREE.PointLight(0xf97316, 4.0, 28);
-    blastLight.position.set(pos.x, pos.y + 1.2, pos.z);
-    this.scene.add(blastLight);
-    setTimeout(() => this.scene.remove(blastLight), 180);
 
     // 1. Central Fireball
     const fireGeo = new THREE.SphereGeometry(1.6, 16, 16);
@@ -1612,6 +1607,10 @@ export class CyberTanksGame extends BaseGame {
   updateAI(dt) {
     if (this.gameMode !== '1P' || this.p2.isDead || this.p1.isDead) return;
     const ai = this.p2;
+    const cfg = this.AI_LEVELS[this.aiDifficulty] || this.AI_LEVELS.Normal;
+    if (!ai._baseSpeed) { ai._baseSpeed = ai.MAX_SPEED; ai._baseTurn = ai.TURN_SPEED; }
+    ai.MAX_SPEED = ai._baseSpeed * cfg.speed;
+    ai.TURN_SPEED = ai._baseTurn * cfg.turn;
     const wrap = (a) => {
       while (a > Math.PI) a -= Math.PI * 2;
       while (a < -Math.PI) a += Math.PI * 2;
@@ -1688,12 +1687,12 @@ export class CyberTanksGame extends BaseGame {
     }
 
     // --- Fire whenever the barrel is roughly on the player ---
-    if (Math.abs(playerDiff) < 0.28 && dist < 35) {
+    if (Math.abs(playerDiff) < cfg.tol && dist < 35) {
       this.aiFireTimer -= dt;
       if (this.aiFireTimer <= 0 && ai.canFire()) {
         const m = ai.fireMissile();
         if (m) this.activeMissiles.push(m);
-        this.aiFireTimer = 1.2 + Math.random() * 0.8;
+        this.aiFireTimer = cfg.fireMin + Math.random() * cfg.fireVar;
       }
     }
   }
@@ -1757,6 +1756,12 @@ export class CyberTanksGame extends BaseGame {
     if (this.keys['KeyD']) {
       this.p1.rotation -= this.p1.TURN_SPEED * dt;
     }
+    if (!this.keys['KeyA'] && !this.keys['KeyD']) {
+      const d = this.getAssistDiff();
+      if (d !== null && Math.abs(d) < 0.5 && Math.abs(d) > 0.02) {
+        this.p1.rotation += Math.sign(d) * Math.min(Math.abs(d), this.p1.TURN_SPEED * 0.6 * dt);
+      }
+    }
 
     // Player 2: Arrows (only if 2P mode)
     if (this.gameMode === '2P') {
@@ -1803,8 +1808,41 @@ export class CyberTanksGame extends BaseGame {
   // =========================================================================
   // Per-Frame Update Loop
   // =========================================================================
+  vibrate(pattern) {
+    if (!this.isTouch || !this.soundEnabled || !navigator.vibrate) return;
+    try { navigator.vibrate(pattern); } catch (_) {}
+  }
+
+  // Aim assist: nudge the hull toward the enemy when it is roughly ahead
+  getAssistDiff() {
+    if (!this.aimAssist || this.p2.isDead || this.p1.isDead) return null;
+    if (this.gameMode !== '1P' && this.gameMode !== '2P') return null;
+    let d = Math.atan2(this.p2.x - this.p1.x, this.p2.z - this.p1.z) - this.p1.rotation;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    return d;
+  }
+
+  addShake(amount) {
+    this.shake = Math.min(1, (this.shake || 0) + amount);
+  }
+
+  flashDamage() {
+    const el = document.getElementById('tankDamageFlash');
+    if (!el) return;
+    el.classList.remove('show');
+    void el.offsetWidth;
+    el.classList.add('show');
+  }
+
   update(dt, input) {
     if (this.isPaused) return;
+
+    // Brief hit-pause on big explosions
+    if (this.hitPause > 0) {
+      this.hitPause -= dt;
+      return;
+    }
 
     this.processInputs(dt);
     this.updateAI(dt);
@@ -1866,6 +1904,15 @@ export class CyberTanksGame extends BaseGame {
       this.camera.position.z = THREE.MathUtils.lerp(this.camera.position.z, targetCamZ, 0.1);
       this.camera.lookAt(this.p1.x, 1.5, this.p1.z);
     }
+
+    // Screen shake (decays quickly); applied after lookAt so the view jitters
+    if (this.shake > 0.01) {
+      const mag = this.shake * this.shake * 0.9;
+      this.camera.position.x += (Math.random() - 0.5) * mag;
+      this.camera.position.y += (Math.random() - 0.5) * mag;
+      this.camera.position.z += (Math.random() - 0.5) * mag;
+      this.shake = Math.max(0, this.shake - dt * 2.5);
+    }
   }
 
   // =========================================================================
@@ -1874,6 +1921,8 @@ export class CyberTanksGame extends BaseGame {
   getHUDHtml() {
     return `
       <div class="tank-ui-layer">
+        <div class="tank-damage-flash" id="tankDamageFlash"></div>
+        <div class="tank-enemy-arrow" id="tankEnemyArrow"><svg viewBox="0 0 24 24"><path d="M12 3l9 16-9-4-9 4z"/></svg></div>
         <!-- Top Status & Health Bar -->
         <header class="tank-top-bar">
           <!-- Health & Match Scoreboard (Battle Modes) -->
@@ -1955,6 +2004,9 @@ export class CyberTanksGame extends BaseGame {
             <button class="tank-nav-link-btn" id="btnTogglePractice" title="Toggle Practice Range / Battle" style="cursor:pointer; color:#38bdf8; border-color:rgba(56,189,248,0.3);">
               ${this.gameMode === 'PRACTICE' ? 'Battle Mode' : 'Practice'}
             </button>
+            <button class="tank-nav-link-btn" id="btnAimAssist" title="Aim assist" style="cursor:pointer;">Aim: ${this.aimAssist ? 'Assist' : 'Manual'}</button>
+            <button class="tank-btn-icon" id="btnPauseTank" title="Pause / Help"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg></button>
+            <button class="tank-nav-link-btn" id="btnAiLevel" title="AI difficulty" style="cursor:pointer; display:${this.gameMode === '1P' ? 'inline-flex' : 'none'};">AI: ${this.aiDifficulty}</button>
             <button class="tank-btn-icon" id="btnCamView" title="Toggle Camera View (Tactical / Overhead / Action)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h4l2-3h6l2 3h4v11H3zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg></button>
             <button class="tank-btn-icon" id="btnSoundTank" title="Toggle Sound"><svg class="ic ic-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg><svg class="ic ic-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4zM22 9l-6 6M16 9l6 6"/></svg></button>
           </div>
@@ -1983,15 +2035,8 @@ export class CyberTanksGame extends BaseGame {
 
           <!-- Mobile On-Screen Controls -->
           <div class="tank-mobile-controls interactive">
-            <div class="tank-touch-pad">
-              <div></div>
-              <button class="tank-touch-btn" id="mP1Up">▲</button>
-              <div></div>
-              <button class="tank-touch-btn" id="mP1Left">◀</button>
-              <button class="tank-touch-btn" id="mP1Down">▼</button>
-              <button class="tank-touch-btn" id="mP1Right">▶</button>
-            </div>
-            <button class="tank-touch-btn fire-btn" id="mP1Fire" style="width: 80px; height: 80px; border-radius: 50%;">FIRE</button>
+            <div class="tank-joystick" id="tankJoystick"><div class="tank-joystick-knob" id="tankJoystickKnob"></div></div>
+            <button class="tank-touch-btn fire-btn" id="mP1Fire" style="border-radius: 50%;"><span id="mP1FireLabel">FIRE</span></button>
           </div>
 
           <!-- Player 2 Controls Card -->
@@ -2009,6 +2054,14 @@ export class CyberTanksGame extends BaseGame {
         </footer>
 
         <!-- Round / Match Over Modal -->
+        <div class="tank-modal-overlay" id="tankHelpModal">
+          <div class="tank-modal-box tank-glass interactive">
+            <h2 class="tank-modal-title" id="tankHelpTitle">HOW TO PLAY</h2>
+            <div class="tank-help-list" id="tankHelpList"></div>
+            <button class="primary-btn" id="btnHelpGo">Got it</button>
+          </div>
+        </div>
+
         <div class="tank-modal-overlay" id="roundModal" style="display: none;">
           <div class="tank-modal-box tank-glass interactive">
             <div id="winnerEmoji" style="font-size: 3.5rem;"></div>
@@ -2044,6 +2097,46 @@ export class CyberTanksGame extends BaseGame {
   }
 
   updateHUD() {
+    const aiBtn = document.getElementById('btnAiLevel');
+    if (aiBtn) aiBtn.style.display = this.gameMode === '1P' ? 'inline-flex' : 'none';
+
+    // Fire button: reload ring + ammo count
+    const fireBtn = document.getElementById('mP1Fire');
+    if (fireBtn) {
+      const p1 = this.p1;
+      const full = p1.ammo >= p1.maxAmmo;
+      const prog = full ? 1 : p1.reloadTimer / p1.RELOAD_TIME;
+      fireBtn.style.setProperty('--reload', `${Math.round(prog * 360)}deg`);
+      fireBtn.classList.toggle('is-empty', p1.ammo <= 0);
+      const label = document.getElementById('mP1FireLabel');
+      if (label) label.textContent = p1.ammo <= 0 ? 'RELOAD' : `FIRE ${p1.ammo}`;
+    }
+
+    // Off-screen enemy arrow
+    const arrow = document.getElementById('tankEnemyArrow');
+    if (arrow) {
+      let show = false;
+      const layer = arrow.parentElement;
+      if ((this.gameMode === '1P' || this.gameMode === '2P') && !this.p2.isDead && !this.matchOver && layer) {
+        const w = layer.clientWidth, h = layer.clientHeight;
+        const v = new THREE.Vector3(this.p2.x, 1.0, this.p2.z).project(this.camera);
+        const behind = v.z > 1;
+        let sx = (v.x * 0.5 + 0.5) * w;
+        let sy = (-v.y * 0.5 + 0.5) * h;
+        if (behind) { sx = w - sx; sy = h - sy; }
+        const m = 28;
+        if (behind || sx < m || sx > w - m || sy < m || sy > h - m) {
+          show = true;
+          const cx = w / 2, cy = h / 2;
+          const dx = sx - cx, dy = sy - cy;
+          const k = Math.min((w / 2 - m) / (Math.abs(dx) || 1e-6), (h / 2 - m) / (Math.abs(dy) || 1e-6));
+          const ax = cx + dx * k, ay = cy + dy * k;
+          arrow.style.transform = `translate(${ax - 16}px, ${ay - 16}px) rotate(${Math.atan2(dy, dx) + Math.PI / 2}rad)`;
+        }
+      }
+      arrow.style.display = show ? 'block' : 'none';
+    }
+
     // 1. Health Bars
     const p1Pct = (this.p1.hp / this.p1.maxHp) * 100;
     const p1El = document.getElementById('p1HpBar');
@@ -2143,6 +2236,59 @@ export class CyberTanksGame extends BaseGame {
       });
     }
 
+    const btnAim = document.getElementById('btnAimAssist');
+    if (btnAim && !btnAim._bound) {
+      btnAim._bound = true;
+      btnAim.addEventListener('click', () => {
+        this.aimAssist = !this.aimAssist;
+        try { localStorage.setItem('tankAimAssist', this.aimAssist ? '1' : '0'); } catch (_) {}
+        btnAim.textContent = `Aim: ${this.aimAssist ? 'Assist' : 'Manual'}`;
+        this.showToast('AIM ASSIST', this.aimAssist ? 'Barrel auto-tracks the enemy' : 'Manual aiming', '#38bdf8');
+      });
+    }
+
+    const helpModal = document.getElementById('tankHelpModal');
+    const helpList = document.getElementById('tankHelpList');
+    if (helpModal && helpList && !helpModal._bound) {
+      helpModal._bound = true;
+      this._openHelp = (first) => {
+        const rows = this.isTouch
+          ? [['Drive & steer', 'Drag the left stick: up/down to move, left/right to turn'],
+             ['Fire', 'Tap the FIRE button. The ring shows reload progress'],
+             ['Aim assist', 'Toggle it in the top bar to auto-line-up shots'],
+             ['Win', 'Take out the enemy tank first. Best of 3 rounds']]
+          : [['Drive & steer', 'W A S D'], ['Fire', 'Space or F'], ['Win', 'Take out the enemy tank first. Best of 3 rounds']];
+        helpList.innerHTML = rows.map(r => `<div class="tank-help-row"><b>${r[0]}</b><span>${r[1]}</span></div>`).join('');
+        document.getElementById('tankHelpTitle').textContent = first ? 'HOW TO PLAY' : 'PAUSED';
+        document.getElementById('btnHelpGo').textContent = first ? 'Got it' : 'Resume';
+        helpModal.classList.add('active');
+        this.pause();
+      };
+      const closeHelp = () => {
+        helpModal.classList.remove('active');
+        this.resume();
+      };
+      document.getElementById('btnHelpGo').addEventListener('click', closeHelp);
+      document.getElementById('btnPauseTank').addEventListener('click', () => {
+        if (helpModal.classList.contains('active')) closeHelp(); else this._openHelp(false);
+      });
+      let seen = false;
+      try { seen = localStorage.getItem('tankTutorialSeen') === '1'; localStorage.setItem('tankTutorialSeen', '1'); } catch (_) {}
+      if (!seen) this._openHelp(true);
+    }
+
+    const btnAiLevel = document.getElementById('btnAiLevel');
+    if (btnAiLevel && !btnAiLevel._bound) {
+      btnAiLevel._bound = true;
+      btnAiLevel.addEventListener('click', () => {
+        const order = ['Easy', 'Normal', 'Hard'];
+        this.aiDifficulty = order[(order.indexOf(this.aiDifficulty) + 1) % order.length];
+        try { localStorage.setItem('tankAiDifficulty', this.aiDifficulty); } catch (_) {}
+        btnAiLevel.textContent = `AI: ${this.aiDifficulty}`;
+        this.showToast('AI DIFFICULTY', this.aiDifficulty, '#38bdf8');
+      });
+    }
+
     const btnRespawnTargets = document.getElementById('btnRespawnTargets');
     if (btnRespawnTargets && !btnRespawnTargets._bound) {
       btnRespawnTargets._bound = true;
@@ -2175,26 +2321,46 @@ export class CyberTanksGame extends BaseGame {
     }
 
     // Touch controls
-    const bindTouch = (id, code) => {
-      const btn = document.getElementById(id);
-      if (btn && !btn._bound) {
-        btn._bound = true;
-        btn.addEventListener('touchstart', (e) => {
-          e.preventDefault();
-          this.initAudio();
-          this.keys[code] = true;
-        });
-        btn.addEventListener('touchend', (e) => {
-          e.preventDefault();
-          this.keys[code] = false;
-        });
-      }
-    };
-
-    bindTouch('mP1Up', 'KeyW');
-    bindTouch('mP1Down', 'KeyS');
-    bindTouch('mP1Left', 'KeyA');
-    bindTouch('mP1Right', 'KeyD');
+    const stick = document.getElementById('tankJoystick');
+    const knob = document.getElementById('tankJoystickKnob');
+    if (stick && !stick._bound) {
+      stick._bound = true;
+      let activeId = null;
+      const setKeys = (nx, ny) => {
+        const dead = 0.28;
+        this.keys['KeyW'] = ny < -dead;
+        this.keys['KeyS'] = ny > dead;
+        this.keys['KeyA'] = nx < -dead;
+        this.keys['KeyD'] = nx > dead;
+      };
+      const move = (e) => {
+        const r = stick.getBoundingClientRect();
+        const radius = r.width / 2;
+        let dx = e.clientX - (r.left + radius);
+        let dy = e.clientY - (r.top + radius);
+        const len = Math.hypot(dx, dy);
+        if (len > radius) { dx = dx / len * radius; dy = dy / len * radius; }
+        knob.style.transform = `translate(${dx}px, ${dy}px)`;
+        setKeys(dx / radius, dy / radius);
+      };
+      const release = (e) => {
+        if (e.pointerId !== activeId) return;
+        activeId = null;
+        knob.style.transform = '';
+        setKeys(0, 0);
+      };
+      stick.addEventListener('pointerdown', (e) => {
+        if (activeId !== null) return;
+        e.preventDefault();
+        activeId = e.pointerId;
+        try { stick.setPointerCapture(e.pointerId); } catch (_) {}
+        this.initAudio();
+        move(e);
+      });
+      stick.addEventListener('pointermove', (e) => { if (e.pointerId === activeId) move(e); });
+      stick.addEventListener('pointerup', release);
+      stick.addEventListener('pointercancel', release);
+    }
 
     const mFire = document.getElementById('mP1Fire');
     if (mFire && !mFire._bound) {
@@ -2203,6 +2369,8 @@ export class CyberTanksGame extends BaseGame {
         e.preventDefault();
         this.initAudio();
         if (!this.matchOver) {
+          const d = this.getAssistDiff();
+          if (d !== null && Math.abs(d) < 0.35) this.p1.rotation += d;
           const m = this.p1.fireMissile();
           if (m) this.activeMissiles.push(m);
         }
