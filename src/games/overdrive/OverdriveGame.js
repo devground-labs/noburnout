@@ -40,11 +40,11 @@ function makeCanvasTexture(w, h, draw) {
   return tex;
 }
 
-export class NeonOverdriveGame extends BaseGame {
+export class OverdriveGame extends BaseGame {
   constructor() {
     super({
-      id: 'neon-overdrive',
-      name: 'Neon Overdrive',
+      id: 'overdrive',
+      name: 'Overdrive',
       subtitle: 'Infinite Synthwave Highway',
       description: 'Dodge traffic and barricades on an endless cyberpunk highway. How long can you survive at terminal velocity?',
       icon: '🏎️',
@@ -79,7 +79,8 @@ export class NeonOverdriveGame extends BaseGame {
     this.combo = 0;
     this.shake = 0;
     this.isGameOver = false;
-    this.highScore = parseInt(localStorage.getItem('neon_highscore') || '0', 10);
+    // Falls back to the key used before the rename so existing bests carry over.
+    this.highScore = parseInt(localStorage.getItem('overdrive_highscore') || localStorage.getItem('neon_highscore') || '0', 10);
 
     this.hud = null;
     this._toastTimer = 0;
@@ -564,7 +565,7 @@ export class NeonOverdriveGame extends BaseGame {
     this.isNewBest = finalScore > this.highScore;
     if (this.isNewBest) {
       this.highScore = finalScore;
-      localStorage.setItem('neon_highscore', String(finalScore));
+      localStorage.setItem('overdrive_highscore', String(finalScore));
     }
 
     const colors = [0x00d9ff, 0xff2bd6, 0xffb300, 0xffffff];

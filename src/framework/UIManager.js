@@ -11,13 +11,17 @@ const GAME_THEMES = {
     accent: '#a78bfa',
     icon: '<svg viewBox="0 0 32 32"><path d="M16 3c4 3 6 8 6 13v6h-12v-6c0-5 2-10 6-13z"/><circle cx="16" cy="13" r="2.2"/><path d="M10 19l-4 5 4-1M22 19l4 5-4-1M14 25l2 4 2-4"/></svg>'
   },
-  'neon-overdrive': {
+  'overdrive': {
     accent: '#f472b6',
     icon: '<svg viewBox="0 0 32 32"><path d="M5 20l2-6c.4-1.2 1.4-2 2.7-2h12.6c1.3 0 2.3.8 2.7 2l2 6v4H5z"/><circle cx="10" cy="24" r="2.2"/><circle cx="22" cy="24" r="2.2"/><path d="M9 17h14"/></svg>'
   },
   'cyber-runner': {
     accent: '#34d399',
     icon: '<svg viewBox="0 0 32 32"><circle cx="19" cy="6" r="2.4"/><path d="M15 12l4-1.5 3 4 4 1M15 12l-3 5 5 3-1 7M17 20l4 2.5 1.5 4.5M12 17l-5 1.5"/></svg>'
+  },
+  'pinball': {
+    accent: '#e11d48',
+    icon: '<svg viewBox="0 0 32 32"><circle cx="16" cy="9" r="3.2"/><circle cx="9" cy="14" r="2.2"/><circle cx="23" cy="14" r="2.2"/><path d="M6 25l7 2.5M26 25l-7 2.5M5 5v18M27 5v18"/></svg>'
   },
   default: {
     accent: '#38bdf8',
@@ -43,7 +47,8 @@ export class UIManager {
     this.selectedModes = {
       'cyber-tanks': '1P (vs AI)',
       'astro-blaster': 'Standard',
-      'cyber-runner': '1 Player'
+      'cyber-runner': '1 Player',
+      'pinball': 'Classic'
     };
 
     this._bindShellEvents();

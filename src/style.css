@@ -1164,7 +1164,7 @@ a.nav-btn { text-decoration: none; }
 }
 
 /* =========================================================================
-   Neon Overdrive HUD
+   Overdrive HUD
    ========================================================================= */
 .nd-hud {
   position: absolute;
@@ -1735,4 +1735,77 @@ a.nav-btn { text-decoration: none; }
   .astro-score-bar > div { min-width: 0; padding: 8px 12px; }
   .astro-score-val, .astro-multiplier-val { font-size: 1.15rem; }
   .astro-shield { width: 80px; }
+}
+
+/* =========================================================================
+   Pinball (2D canvas; only the game-over card lives in the DOM)
+   ========================================================================= */
+.pb-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.pb-over {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, rgba(30, 10, 0, 0.35), rgba(5, 0, 15, 0.78));
+  font-family: 'Rajdhani', 'Orbitron', sans-serif;
+  color: #e6fbff;
+}
+.pb-over.show { display: flex; }
+.pb-over-card {
+  width: min(400px, 88vw);
+  padding: 26px 24px 28px;
+  text-align: center;
+  background: rgba(10, 4, 28, 0.9);
+  border: 1px solid rgba(251, 191, 36, 0.7);
+  border-radius: 14px;
+  box-shadow: 0 0 40px rgba(251, 191, 36, 0.3), inset 0 0 30px rgba(251, 191, 36, 0.08);
+}
+.pb-over-card h1 {
+  margin: 0 0 6px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(1.6rem, 6vw, 2.2rem);
+  letter-spacing: 0.12em;
+  color: #fbbf24;
+  text-shadow: 0 0 18px rgba(251, 191, 36, 0.8);
+}
+.pb-over-score {
+  font-size: clamp(2.4rem, 10vw, 3.4rem);
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 16px rgba(34, 211, 238, 0.8);
+}
+.pb-over-best { margin: 4px 0 18px; letter-spacing: 0.2em; color: #ff7be9; font-size: 0.85rem; }
+.pb-over-best.record { color: #fde047; text-shadow: 0 0 10px rgba(255, 200, 0, 0.8); }
+.pb-restart {
+  cursor: pointer;
+  padding: 12px 24px;
+  font: 700 1rem/1 'Rajdhani', sans-serif;
+  letter-spacing: 0.2em;
+  color: #05010f;
+  background: linear-gradient(90deg, #fbbf24, #f472b6);
+  border: 0;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(244, 114, 182, 0.5);
+}
+.pb-restart:hover { filter: brightness(1.15); }
+.pb-restart kbd {
+  margin-left: 8px;
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+}
+@media (pointer: coarse) {
+  .pb-restart kbd { display: none; }
 }

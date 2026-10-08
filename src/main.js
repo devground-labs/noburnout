@@ -22,8 +22,9 @@ import { Engine } from './framework/Engine.js';
 import { UIManager } from './framework/UIManager.js';
 import { CyberTanksGame } from './games/cyber-tanks/CyberTanksGame.js';
 import { AstroBlasterGame } from './games/astro-blaster/AstroBlasterGame.js';
-import { NeonOverdriveGame } from './games/neon-overdrive/NeonOverdriveGame.js';
+import { OverdriveGame } from './games/overdrive/OverdriveGame.js';
 import { CyberRunnerGame } from './games/cyber-runner/CyberRunnerGame.js';
+import { PinballGame } from './games/pinball/PinballGame.js';
 
 
 // Vercel Web Analytics: cookieless visitor and page-view counts (only reports on the deployed site)
@@ -39,8 +40,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   // Register the live game lineup
   engine.registry.register(CyberTanksGame);
   engine.registry.register(AstroBlasterGame);
-  engine.registry.register(NeonOverdriveGame);
+  engine.registry.register(OverdriveGame);
   engine.registry.register(CyberRunnerGame);
+  engine.registry.register(PinballGame);
 
   // Start with Landing Page and 3D ambient cyber grid lobby
   ui.showLandingPage();
