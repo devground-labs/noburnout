@@ -43,10 +43,7 @@ export class UIManager {
     this.selectedModes = {
       'cyber-tanks': '1P (vs AI)',
       'astro-blaster': 'Standard',
-      'cyber-runner': '1 Player',
-      'super-over-cricket': 'Target Chase (19 Runs)',
-      'shadow-operative': 'Infiltration (Normal)',
-      'super-plumber': 'World 1-1 (Grassland)'
+      'cyber-runner': '1 Player'
     };
 
     this._bindShellEvents();

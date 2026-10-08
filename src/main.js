@@ -25,11 +25,6 @@ import { AstroBlasterGame } from './games/astro-blaster/AstroBlasterGame.js';
 import { NeonOverdriveGame } from './games/neon-overdrive/NeonOverdriveGame.js';
 import { CyberRunnerGame } from './games/cyber-runner/CyberRunnerGame.js';
 
-// Hidden for now (code kept in src/games/, re-enable by importing + registering):
-// import { CricketGame } from './games/cricket/CricketGame.js';
-// import { ShadowOperativeGame } from './games/shadow-operative/ShadowOperativeGame.js';
-// import { SuperPlumberGame } from './games/super-plumber/SuperPlumberGame.js';
-// import { GravityTugGame } from './games/gravity-tug/GravityTugGame.js';
 
 // Vercel Web Analytics: cookieless visitor and page-view counts (only reports on the deployed site)
 inject();
