@@ -23,8 +23,9 @@ import { UIManager } from './framework/UIManager.js';
 import { showVisitorCount } from './framework/visitors.js';
 import { CyberTanksGame } from './games/cyber-tanks/CyberTanksGame.js';
 import { AstroBlasterGame } from './games/astro-blaster/AstroBlasterGame.js';
-import { NeonOverdriveGame } from './games/neon-overdrive/NeonOverdriveGame.js';
+import { OverdriveGame } from './games/overdrive/OverdriveGame.js';
 import { CyberRunnerGame } from './games/cyber-runner/CyberRunnerGame.js';
+import { PinballGame } from './games/pinball/PinballGame.js';
 
 
 // Vercel Web Analytics: cookieless visitor and page-view counts (only reports on the deployed site)
@@ -40,8 +41,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   // Register the live game lineup
   // Order here is the order shown on the landing page and in the Switch game modal
   engine.registry.register(AstroBlasterGame);
-  engine.registry.register(NeonOverdriveGame);
+  engine.registry.register(OverdriveGame);
   engine.registry.register(CyberRunnerGame);
+  engine.registry.register(PinballGame);
   engine.registry.register(CyberTanksGame);
 
   // Start with Landing Page and 3D ambient cyber grid lobby

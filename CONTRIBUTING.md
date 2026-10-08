@@ -38,7 +38,7 @@ Each game is a class that extends `BaseGame` and lives in `src/games/<your-game>
 2. Register it in `src/main.js` with `engine.registry.register(MyGame)`.
 3. Optionally add an accent colour and icon for its landing card in `GAME_THEMES` in `src/framework/UIManager.js`.
 
-Games that own their own scene, camera and HUD (like Neon Overdrive and Cyber-Runner) are a good pattern to copy: set `this.hasCustomRender = true` and render with your own camera.
+Games that own their own scene, camera and HUD (like Overdrive and Cyber-Runner) are a good pattern to copy: set `this.hasCustomRender = true` and render with your own camera.
 
 ### What makes a good NoBurnout game
 

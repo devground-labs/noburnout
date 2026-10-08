@@ -6,7 +6,7 @@ export class AstroBlasterGame extends BaseGame {
   constructor() {
     super({
       id: 'astro-blaster',
-      name: 'Neon Astro-Blaster 3D',
+      name: 'Astro-Blaster 3D',
       subtitle: 'High-Velocity Deep Space Arcade Combat',
       description: 'Pilot an agile starfighter through dense asteroid belts and alien interceptor squadrons. Rack up chain combos with rapid plasma blasters.',
       icon: '🚀',
