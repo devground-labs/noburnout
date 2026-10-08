@@ -26,6 +26,7 @@ A high-performance, modular **3D Web Game Framework** built on **Three.js**, **C
 3. **Overdrive** (`overdrive`): an endless synthwave highway. Dodge traffic and barricades as the speed climbs.
 4. **Cyber-Runner** (`cyber-runner`): jump and double jump over obstacles and grab gems. 1 Player is endless with rising difficulty, 2 Players is a head-to-head race.
 5. **Pinball** (`pinball`): a classic 2D table with two flippers, pop bumpers, slingshots, side orbits with spinners, a saucer, drop targets and rollover lanes. Works with keyboard, mouse and touch. Modes: Classic (3 balls), Zen (endless).
+6. **Maze Paint** (`maze-paint`): a brain puzzle. Drag one unbroken path through every box of a patterned maze exactly once. Fifty levels of rising difficulty that unlock in order, with keyboard, mouse and touch support. Progress and best times are saved locally.
 
 ---
 
