@@ -38,10 +38,11 @@ window.addEventListener('DOMContentLoaded', async () => {
   engine.ui = ui;
 
   // Register the live game lineup
-  engine.registry.register(CyberTanksGame);
+  // Order here is the order shown on the landing page and in the Switch game modal
   engine.registry.register(AstroBlasterGame);
   engine.registry.register(NeonOverdriveGame);
   engine.registry.register(CyberRunnerGame);
+  engine.registry.register(CyberTanksGame);
 
   // Start with Landing Page and 3D ambient cyber grid lobby
   ui.showLandingPage();
