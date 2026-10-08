@@ -685,7 +685,7 @@ export class AstroBlasterGame extends BaseGame {
 
   getControlsGuide() {
     return [
-      { label: 'Pilot Maneuver (3D)', keys: 'W A S D / ARROW KEYS' },
+      { label: 'Pilot Maneuver (3D)', keys: 'W A S D' },
       { label: 'Twin Plasma Blasters', keys: 'SPACE / MOUSE CLICK' },
       { label: 'Touch Screens', keys: 'Left stick to fly, hold FIRE to shoot' },
       { label: 'Toggle Floodlight', keys: 'F or L KEY' },
