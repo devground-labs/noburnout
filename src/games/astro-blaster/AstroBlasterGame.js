@@ -34,6 +34,10 @@ export class AstroBlasterGame extends BaseGame {
     this.planetSpawnTimer = 0;
     this.distance = 0;
     this.fireCooldown = 0;
+    this.xLimit = 11; // half-width of the ship's playfield (shrinks on portrait screens)
+    this.fieldScale = 1; // scales enemy/asteroid spawn width to match xLimit
+    this._touch = { x: 0, y: 0 }; // virtual joystick, each axis in [-1, 1] (y up)
+    this._touchFire = false;
     this.gameOver = false;
   }
 
@@ -105,7 +109,7 @@ export class AstroBlasterGame extends BaseGame {
     };
 
     // Camera setup for space flight
-    this.camera.position.set(0, 10, 28);
+    this.applyView(this.camera.aspect);
     this.camera.lookAt(0, 0, -10);
   }
 
@@ -145,6 +149,37 @@ export class AstroBlasterGame extends BaseGame {
     }
   }
 
+  /**
+   * Frames the playfield for the screen shape. The shared camera has a fixed
+   * vertical FOV, so on a portrait phone the sides of the playfield would be
+   * off-screen. Widen the FOV a little and narrow the playfield (ship range and
+   * spawn width) to what is actually visible.
+   */
+  applyView(aspect) {
+    const BASE_FOV = 55;
+    const BASE_CAM_Z = 28;
+    const SHIP_HALF_WIDTH = 3; // wing tips must stay on screen at the playfield edge
+    const portrait = Math.max(0, 1 - aspect);
+
+    // Widen the FOV a little and pull the camera back as the screen gets narrower
+    const fov = Math.min(85, BASE_FOV + portrait * 60);
+    const camZ = BASE_CAM_Z + portrait * 14;
+    this.camera.fov = fov;
+    this.camera.position.set(0, 10, camZ);
+    this.camera.lookAt(0, 0, -10);
+    this.camera.updateProjectionMatrix();
+
+    // Visible half-width at the ship's plane, then fit the playfield inside it
+    const planeDist = camZ - 14 + 2;
+    const halfWidth = Math.tan(THREE.MathUtils.degToRad(fov / 2)) * planeDist * aspect;
+    this.xLimit = Math.min(11, Math.max(4, halfWidth - SHIP_HALF_WIDTH));
+    this.fieldScale = this.xLimit / 11;
+  }
+
+  onResize(width, height) {
+    this.applyView(width / height);
+  }
+
   spawnPlanet() {
     const radius = 25 + Math.random() * 15;
     const geo = new THREE.SphereGeometry(radius, 32, 32);
@@ -176,7 +211,7 @@ export class AstroBlasterGame extends BaseGame {
   spawnAsteroid(difficultyLevel = 0) {
     const radius = 1.2 + Math.random() * 1.6;
     const mesh = createAsteroidMesh(radius);
-    const x = (Math.random() - 0.5) * 44;
+    const x = (Math.random() - 0.5) * 44 * this.fieldScale;
     const y = (Math.random() - 0.5) * 18;
     const z = -75;
 
@@ -198,7 +233,7 @@ export class AstroBlasterGame extends BaseGame {
 
   spawnEnemy(difficultyLevel = 0) {
     const mesh = createEnemyJetMesh();
-    const x = (Math.random() - 0.5) * 28;
+    const x = (Math.random() - 0.5) * 28 * this.fieldScale;
     const y = (Math.random() - 0.5) * 14;
     const z = -80;
 
@@ -265,9 +300,12 @@ export class AstroBlasterGame extends BaseGame {
     if (p1In.right) this.ship.targetX += speed * dt;
     if (p1In.up) this.ship.targetY += speed * dt;
     if (p1In.down) this.ship.targetY -= speed * dt;
+    // Virtual joystick (touch): analog, so a gentle push moves the ship gently
+    this.ship.targetX += this._touch.x * speed * dt;
+    this.ship.targetY += this._touch.y * speed * dt;
 
     // Clamping to tighter screen volume based on camera perspective
-    this.ship.targetX = Math.max(-11, Math.min(11, this.ship.targetX));
+    this.ship.targetX = Math.max(-this.xLimit, Math.min(this.xLimit, this.ship.targetX));
     // Camera is looking slightly down, so the visible Y center is around +6 at Z=14
     this.ship.targetY = Math.max(1, Math.min(11, this.ship.targetY));
 
@@ -283,7 +321,7 @@ export class AstroBlasterGame extends BaseGame {
     this.shipMesh.rotation.z = this.ship.roll;
 
     // Fire handling
-    if (p1In.fire || input.mouse.isDown) {
+    if (p1In.fire || input.mouse.isDown || this._touchFire) {
       this.fireBlasters();
     }
     this.fireCooldown = Math.max(0, this.fireCooldown - dt);
@@ -548,6 +586,14 @@ export class AstroBlasterGame extends BaseGame {
           </div>
         </div>
 
+        <!-- Touch controls (shown on touch screens only): joystick + fire -->
+        <div class="astro-touch">
+          <div class="astro-stick" id="astro-stick" aria-label="Move ship">
+            <div class="astro-stick-knob" id="astro-stick-knob"></div>
+          </div>
+          <button class="astro-fire" id="astro-fire" aria-label="Fire blasters">FIRE</button>
+        </div>
+
         <!-- Game Over Modal -->
         <div class="tank-modal-overlay" id="astro-gameover-modal" style="display: none;">
           <div class="tank-modal-box">
@@ -570,6 +616,8 @@ export class AstroBlasterGame extends BaseGame {
     if (multEl) multEl.textContent = `x${this.multiplier.toFixed(1)}`;
     if (shieldEl) shieldEl.style.width = `${Math.max(0, this.shield)}%`;
 
+    this.bindTouchControls();
+
     const btn = document.getElementById('astro-btn-restart');
     if (btn && !btn._hasClickListener) {
       btn._hasClickListener = true;
@@ -579,10 +627,67 @@ export class AstroBlasterGame extends BaseGame {
     }
   }
 
+  bindTouchControls() {
+    const stick = document.getElementById('astro-stick');
+    const knob = document.getElementById('astro-stick-knob');
+    const fire = document.getElementById('astro-fire');
+    if (!stick || !knob || !fire || stick._bound) return;
+    stick._bound = true;
+
+    const DEAD = 0.18;
+    let activeId = null;
+
+    const move = (e) => {
+      const rect = stick.getBoundingClientRect();
+      const radius = rect.width / 2;
+      let dx = e.clientX - (rect.left + radius);
+      let dy = e.clientY - (rect.top + radius);
+      const len = Math.hypot(dx, dy);
+      if (len > radius) {
+        dx = (dx / len) * radius;
+        dy = (dy / len) * radius;
+      }
+      knob.style.transform = `translate(${dx}px, ${dy}px)`;
+      const mag = Math.min(1, len / radius);
+      const k = mag < DEAD ? 0 : (mag - DEAD) / (1 - DEAD);
+      this._touch.x = len ? (dx / Math.min(len, radius)) * k : 0;
+      this._touch.y = len ? (-dy / Math.min(len, radius)) * k : 0;
+    };
+    const release = (e) => {
+      if (e.pointerId !== activeId) return;
+      activeId = null;
+      knob.style.transform = '';
+      this._touch.x = 0;
+      this._touch.y = 0;
+    };
+
+    stick.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      activeId = e.pointerId;
+      try { stick.setPointerCapture(e.pointerId); } catch { /* pointer already gone */ }
+      move(e);
+    });
+    stick.addEventListener('pointermove', (e) => {
+      if (e.pointerId === activeId) move(e);
+    });
+    stick.addEventListener('pointerup', release);
+    stick.addEventListener('pointercancel', release);
+
+    const setFire = (v) => (e) => {
+      e.preventDefault();
+      this._touchFire = v;
+      fire.classList.toggle('pressed', v);
+    };
+    fire.addEventListener('pointerdown', setFire(true));
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach((t) => fire.addEventListener(t, setFire(false)));
+    [stick, fire].forEach((el) => el.addEventListener('contextmenu', (e) => e.preventDefault()));
+  }
+
   getControlsGuide() {
     return [
-      { label: 'Pilot Maneuver (3D)', keys: 'W A S D / ARROW KEYS' },
+      { label: 'Pilot Maneuver (3D)', keys: 'W A S D' },
       { label: 'Twin Plasma Blasters', keys: 'SPACE / MOUSE CLICK' },
+      { label: 'Touch Screens', keys: 'Left stick to fly, hold FIRE to shoot' },
       { label: 'Toggle Floodlight', keys: 'F or L KEY' },
       { label: 'Hyperspace Drift', keys: 'Automatic continuous forward drive' },
       { label: 'Combo Streak', keys: 'Chain asteroid kills for x8.0 multiplier' }
@@ -602,5 +707,11 @@ export class AstroBlasterGame extends BaseGame {
     if (this.lowerStarfield) this.scene.remove(this.lowerStarfield);
     if (this.planets) this.planets.forEach(p => this.scene.remove(p.mesh));
     if (this.shipMesh) this.scene.remove(this.shipMesh);
+    // The camera is shared with other games: put its FOV back
+    this._touch.x = this._touch.y = 0;
+    this._touchFire = false;
+    this.camera.fov = 55;
+    this.camera.position.set(0, 10, 28);
+    this.camera.updateProjectionMatrix();
   }
 }

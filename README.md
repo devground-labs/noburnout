@@ -133,6 +133,34 @@ npm run dev
 
 ---
 
+## 📊 Visitor counter
+
+The landing page shows a live visitor count, served by a small Go function ([`api/visitors.go`](api/visitors.go), logic in [`counter`](counter)) backed by Redis.
+
+- Each visitor is counted **once per day**. The server stores only a keyed hash of the IP address for 24 hours to avoid double counting. Raw IPs are never stored.
+- Requests are limited to 20 per minute per IP (in memory, before Redis is touched), and POSTs from other origins are rejected. For stronger protection, add a rate-limit rule for `/api/visitors` in the Vercel Firewall.
+- If the API or Redis is unavailable, the page quietly shows its default tile instead.
+
+**Configuration** (environment variables, see [`.env.example`](.env.example)):
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `REDIS_URL` | yes | `redis://` or `rediss://` connection string |
+| `VISITOR_SALT` | no | secret for hashing IPs (defaults to a hash of `REDIS_URL`) |
+| `ALLOWED_HOSTS` | no | extra hostnames allowed to count visitors |
+
+**Run it locally** (needs Go and a Redis instance):
+
+```bash
+REDIS_URL=redis://localhost:6379 go run ./cmd/dev   # API on :8787
+npm run dev                                          # Vite proxies /api to it
+go test ./...                                        # backend tests
+```
+
+Without it the site still works; the counter tile just stays on its default.
+
+---
+
 ## 🏗️ Production Build
 
 ```bash

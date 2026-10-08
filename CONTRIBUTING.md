@@ -16,7 +16,10 @@ cd noburnout
 npm install
 npm run dev      # http://localhost:5173
 npm run build    # production build into dist/
+go test ./...    # backend tests (visitor counter)
 ```
+
+The visitor counter is optional for local work; see the "Visitor counter" section in the README to run it.
 
 ## Make a change
 
@@ -47,7 +50,7 @@ Games that own their own scene, camera and HUD (like Overdrive and Cyber-Runner)
 ## Guidelines
 
 - **No new third-party requests.** The site ships a strict Content-Security-Policy (`vercel.json`) that only allows its own origin. Bundle fonts, models and sounds with the app. Sounds are synthesized with Web Audio, so there are no audio files to add.
-- **No tracking or personal data.** Do not add cookies, extra analytics or anything that collects user data.
+- **No tracking or personal data.** Do not add cookies, extra analytics or anything that collects user data. The visitor counter stores only a keyed hash of the IP for 24 hours; keep it that way.
 - **Keep it accessible and responsive.** Check the HUD at phone width and keep text readable.
 - **Match the look.** Use the shared design tokens and the existing navbar and modal styles in `src/style.css`.
 - **No secrets.** Never commit keys, tokens or credentials.
