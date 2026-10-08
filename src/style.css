@@ -193,6 +193,7 @@ html, body {
 }
 .lp-stats div { background: rgba(10, 14, 26, 0.85); padding: 16px 8px; }
 .lp-stats dt { font-size: 1.5rem; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+.lp-stats .is-live dt { color: #7dd3fc; }
 .lp-stats dd { margin-top: 2px; font-size: 0.74rem; color: var(--lp-muted); text-transform: uppercase; letter-spacing: 0.08em; }
 
 /* ---------- Sections ---------- */

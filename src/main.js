@@ -20,6 +20,7 @@ import '@fontsource/rajdhani/latin-700.css';
 
 import { Engine } from './framework/Engine.js';
 import { UIManager } from './framework/UIManager.js';
+import { showVisitorCount } from './framework/visitors.js';
 import { CyberTanksGame } from './games/cyber-tanks/CyberTanksGame.js';
 import { AstroBlasterGame } from './games/astro-blaster/AstroBlasterGame.js';
 import { NeonOverdriveGame } from './games/neon-overdrive/NeonOverdriveGame.js';
@@ -44,6 +45,9 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // Start with Landing Page and 3D ambient cyber grid lobby
   ui.showLandingPage();
+
+  // Live visitor count (quietly does nothing if the API is unavailable)
+  showVisitorCount();
 
   // Welcome toast
   ui.toast('WELCOME TO NOBURNOUT', 'Take a break. Pick a game to get started.', '#38bdf8');
