@@ -134,7 +134,7 @@ npm run dev
 
 ## 📊 Visitor counter
 
-The landing page shows a live visitor count, served by a small Go function ([`api/visitors.go`](api/visitors.go), logic in [`internal/counter`](internal/counter)) backed by Redis.
+The landing page shows a live visitor count, served by a small Go function ([`api/visitors.go`](api/visitors.go), logic in [`counter`](counter)) backed by Redis.
 
 - Each visitor is counted **once per day**. The server stores only a keyed hash of the IP address for 24 hours to avoid double counting. Raw IPs are never stored.
 - Requests are limited to 20 per minute per IP (in memory, before Redis is touched), and POSTs from other origins are rejected. For stronger protection, add a rate-limit rule for `/api/visitors` in the Vercel Firewall.
