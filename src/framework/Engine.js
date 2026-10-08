@@ -43,12 +43,13 @@ export class Engine {
     this.camera.position.set(0, 20, 32);
     this.camera.lookAt(0, 0, 0);
 
+    const isTouch = window.matchMedia('(pointer: coarse)').matches;
     this.renderer = new THREE.WebGLRenderer({
-      antialias: true,
+      antialias: !isTouch,
       powerPreference: 'high-performance'
     });
     this.renderer.setSize(width, height);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, isTouch ? 1.5 : 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
