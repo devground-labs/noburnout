@@ -1737,3 +1737,79 @@ a.nav-btn { text-decoration: none; }
   .astro-score-val, .astro-multiplier-val { font-size: 1.15rem; }
   .astro-shield { width: 80px; }
 }
+
+
+/* Astro-Blaster HUD base layout (restored: the earlier hidden-games cleanup removed it) */
+.astro-hud-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.astro-score-bar {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: stretch;
+  text-align: center;
+  white-space: nowrap;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Astro-Blaster touch controls (touch screens only) */
+.astro-touch { display: none; }
+.astro-stick,
+.astro-fire {
+  position: absolute;
+  bottom: max(26px, env(safe-area-inset-bottom));
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+.astro-stick {
+  left: max(22px, env(safe-area-inset-left));
+  width: clamp(104px, 28vw, 140px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgba(12, 17, 32, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: inset 0 0 24px rgba(56, 189, 248, 0.12);
+}
+.astro-stick-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 46%;
+  aspect-ratio: 1;
+  margin: -23% 0 0 -23%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #7dd3fc, #38bdf8 60%, #0284c7);
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.45);
+  pointer-events: none;
+}
+.astro-fire {
+  right: max(26px, env(safe-area-inset-right));
+  width: clamp(84px, 22vw, 104px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid rgba(252, 165, 165, 0.45);
+  background: linear-gradient(135deg, #f43f5e, #be123c);
+  color: #fff;
+  font: 800 0.85rem/1 var(--font-sans);
+  letter-spacing: 0.1em;
+  box-shadow: 0 8px 24px rgba(244, 63, 94, 0.35);
+}
+.astro-fire.pressed { transform: scale(0.94); filter: brightness(1.15); }
+@media (pointer: coarse) {
+  .astro-touch { display: block; }
+}
+
+/* Toasts are informational: on touch screens never let them block the controls */
+@media (pointer: coarse) {
+  .arcade-toast { pointer-events: none; }
+}
