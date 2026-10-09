@@ -27,6 +27,10 @@ const GAME_THEMES = {
     accent: '#fb923c',
     icon: '<svg viewBox="0 0 32 32"><rect x="5" y="5" width="9" height="9" rx="2"/><rect x="18" y="5" width="9" height="9" rx="2"/><rect x="5" y="18" width="9" height="9" rx="2"/><path d="M14 9.5h4M9.5 14v4M22.5 14v8M14 22.5h4"/></svg>'
   },
+  'pattern-recall': {
+    accent: '#22d3ee',
+    icon: '<svg viewBox="0 0 32 32"><path d="M3 16s5-8 13-8 13 8 13 8-5 8-13 8S3 16 3 16z"/><circle cx="16" cy="16" r="3.5"/></svg>'
+  },
   default: {
     accent: '#38bdf8',
     icon: '<svg viewBox="0 0 32 32"><rect x="4" y="10" width="24" height="13" rx="6"/><path d="M10 14v5M7.5 16.5h5M21 15.5h.01M24 18.5h.01"/></svg>'

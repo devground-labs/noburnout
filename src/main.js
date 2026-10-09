@@ -27,6 +27,7 @@ import { OverdriveGame } from './games/overdrive/OverdriveGame.js';
 import { CyberRunnerGame } from './games/cyber-runner/CyberRunnerGame.js';
 import { PinballGame } from './games/pinball/PinballGame.js';
 import { MazePaintGame } from './games/maze-paint/MazePaintGame.js';
+import { PatternRecallGame } from './games/pattern-recall/PatternRecallGame.js';
 
 
 // Vercel Web Analytics: cookieless visitor and page-view counts (only reports on the deployed site)
@@ -46,6 +47,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   engine.registry.register(CyberRunnerGame);
   engine.registry.register(PinballGame);
   engine.registry.register(MazePaintGame);
+  engine.registry.register(PatternRecallGame);
   engine.registry.register(CyberTanksGame);
 
   // Start with Landing Page and 3D ambient cyber grid lobby
