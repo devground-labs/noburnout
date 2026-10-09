@@ -27,7 +27,7 @@ A high-performance, modular **3D Web Game Framework** built on **Three.js**, **C
 4. **Cyber-Runner** (`cyber-runner`): jump and double jump over obstacles and grab gems. 1 Player is endless with rising difficulty, 2 Players is a head-to-head race.
 5. **Pinball** (`pinball`): a classic 2D table with two flippers, pop bumpers, slingshots, side orbits with spinners, a saucer, drop targets and rollover lanes. Works with keyboard, mouse and touch. Modes: Classic (3 balls), Zen (endless).
 6. **Maze Paint** (`maze-paint`): a brain puzzle. Drag one unbroken path through every box of a patterned maze exactly once. Fifty levels of rising difficulty that unlock in order, with keyboard, mouse and touch support. Progress and best times are saved locally.
-7. **Pattern Recall** (`pattern-recall`): a memory puzzle. A pattern of boxes lights up, then vanishes, and you rebuild it from memory. Forty levels with bigger grids, more boxes and less time. They unlock in order, with keyboard, mouse and touch support. Progress is saved locally.
+7. **Pattern Recall** (`pattern-recall`): a memory puzzle. A pattern of boxes lights up, then vanishes, and you rebuild it from memory. Forty levels that get hard fast, with bigger grids, more boxes and less time. They unlock in order, with keyboard, mouse and touch support. Progress is saved locally.
 
 ---
 
