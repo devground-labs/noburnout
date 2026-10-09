@@ -2109,3 +2109,18 @@ a.nav-btn { text-decoration: none; }
 }
 .pr-bar.on { opacity: 1; }
 .pr-bar i { display: block; height: 100%; width: 100%; background: var(--c); }
+
+/* Maze Paint / Pattern Recall: low-key reset-progress link (two taps to confirm) */
+.mp-link {
+  cursor: pointer;
+  margin-top: 4px;
+  padding: 6px 10px;
+  font: 600 0.8rem 'Plus Jakarta Sans', sans-serif;
+  color: #64748b;
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.mp-link:hover { color: #94a3b8; }
+.mp-link.confirm { color: #fda4af; }
