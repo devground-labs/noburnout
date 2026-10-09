@@ -2093,3 +2093,19 @@ a.nav-btn { text-decoration: none; }
 .tank-help-row { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.05); }
 .tank-help-row b { color: #38bdf8; font-size: 0.8rem; letter-spacing: 0.04em; }
 .tank-help-row span { color: #cbd5e1; font-size: 0.85rem; }
+
+/* Pattern Recall: reuses the Maze Paint box design above and adds result states + a timer bar */
+.mp-cell.wrong::before { background: #f43f5e; opacity: 1; box-shadow: 0 0 14px rgba(244, 63, 94, 0.5); }
+.mp-cell.missed::before { background: rgba(251, 146, 60, 0.12); opacity: 1; box-shadow: inset 0 0 0 3px var(--c); }
+.mp-grid.locked { cursor: default; }
+.pr-bar {
+  width: var(--board);
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: rgba(148, 163, 184, 0.2);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.pr-bar.on { opacity: 1; }
+.pr-bar i { display: block; height: 100%; width: 100%; background: var(--c); }
