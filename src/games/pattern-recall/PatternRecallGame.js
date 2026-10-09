@@ -2,14 +2,16 @@ import { BaseGame } from '../../framework/BaseGame.js';
 
 // Pattern Recall reuses the Maze Paint box design (the mp-* styles in style.css).
 
-// Grids grow with each tier. The early tiers use mirror-symmetric patterns, which are
-// easier to hold in your head; from 6x6 on the patterns are fully random.
+// Levels 1-3 ease you in with small mirror-symmetric patterns (easier to hold in your head).
+// From level 4 the patterns are random, and each tier jumps to a bigger grid with more
+// boxes lit. The time you get per box also shrinks level by level.
 const TIERS = [
   { size: 3, count: 3, lit: [3, 4], symmetric: true },
-  { size: 4, count: 6, lit: [4, 7], symmetric: true },
-  { size: 5, count: 8, lit: [6, 11], symmetric: true },
-  { size: 6, count: 10, lit: [8, 15], symmetric: false },
-  { size: 7, count: 13, lit: [11, 20], symmetric: false }
+  { size: 4, count: 4, lit: [6, 8], symmetric: false },
+  { size: 5, count: 5, lit: [9, 12], symmetric: false },
+  { size: 6, count: 8, lit: [13, 20], symmetric: false },
+  { size: 7, count: 10, lit: [18, 28], symmetric: false },
+  { size: 8, count: 10, lit: [24, 36], symmetric: false }
 ];
 
 const LEVELS = [];
@@ -17,9 +19,8 @@ TIERS.forEach(t => {
   for (let k = 0; k < t.count; k++) {
     const lit = Math.round(t.lit[0] + ((t.lit[1] - t.lit[0]) * k) / Math.max(1, t.count - 1));
     const n = LEVELS.length;
-    // Less time per box as levels go on.
-    const showSec = Math.max(1.6, 1 + lit * (0.32 - n * 0.003));
-    LEVELS.push({ size: t.size, lit, symmetric: t.symmetric, showSec });
+    const perBox = Math.max(0.1, 0.45 - n * 0.009);
+    LEVELS.push({ size: t.size, lit, symmetric: t.symmetric, showSec: 0.5 + lit * perBox });
   }
 });
 
@@ -86,7 +87,7 @@ export class PatternRecallGame extends BaseGame {
       id: 'pattern-recall',
       name: 'Pattern Recall',
       subtitle: 'Watch It, Then Draw It',
-      description: 'A pattern lights up for a few seconds, then vanishes. Rebuild it from memory, box by box. Forty levels with bigger grids, more boxes and less time. Clear a level to unlock the next.',
+      description: 'A pattern lights up for a few seconds, then vanishes. Rebuild it from memory, box by box. Forty levels that get hard fast, with bigger grids, more boxes and less time. Clear a level to unlock the next.',
       icon: '🧠',
       badge: '2D Puzzle',
       genre: 'Memory',
