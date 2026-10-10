@@ -206,4 +206,153 @@ export class AudioManager {
     osc.start(now);
     osc.stop(now + 0.03);
   }
+
+  // -------------------------------------------------------------------------
+  // Building blocks for richer game audio (all synthesized, no asset files)
+  // -------------------------------------------------------------------------
+  _noise(dur) {
+    const n = Math.floor(this.ctx.sampleRate * dur);
+    const buf = this.ctx.createBuffer(1, n, this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    return src;
+  }
+
+  /** A short tone, for countdowns and UI blips. */
+  beep(freq = 660, dur = 0.12, type = 'square', vol = 0.22) {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    gain.gain.setValueAtTime(vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + dur);
+  }
+
+  /** Air rushing past: band-passed noise sweeping between two frequencies. */
+  whoosh(dur = 0.28, from = 2400, to = 500, vol = 0.25) {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const src = this._noise(dur);
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.Q.value = 1.2;
+    filter.frequency.setValueAtTime(from, now);
+    filter.frequency.exponentialRampToValueAtTime(to, now + dur);
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.exponentialRampToValueAtTime(vol, now + dur * 0.3);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+    src.start(now);
+    src.stop(now + dur);
+  }
+
+  /** A cartoon bonk: a low thud with a springy boing on top. */
+  thump() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(200, now);
+    osc.frequency.exponentialRampToValueAtTime(45, now + 0.2);
+    gain.gain.setValueAtTime(0.6, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.22);
+    this.beep(520, 0.1, 'triangle', 0.18);
+  }
+
+  /** A crash: a noise burst plus a falling tone. */
+  crash() {
+    if (!this.enabled || !this.ctx) return;
+    this.explosion(0.8);
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.exponentialRampToValueAtTime(40, now + 0.5);
+    gain.gain.setValueAtTime(0.22, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.5);
+  }
+
+  /** A rising sweep for a speed boost. */
+  boostSweep() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(1100, now + 0.4);
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.4);
+    this.whoosh(0.4, 600, 3200, 0.18);
+  }
+
+  // A continuous engine whose pitch follows speed (0..1) and boost (0..1)
+  startEngine() {
+    this._initContext();
+    if (!this.ctx || this._engine) return;
+    const now = this.ctx.currentTime;
+    const a = this.ctx.createOscillator();
+    const b = this.ctx.createOscillator();
+    a.type = 'sawtooth';
+    b.type = 'square';
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 500;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.05, now + 0.4);
+    a.connect(filter);
+    b.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+    a.start(now);
+    b.start(now);
+    this._engine = { a, b, filter, gain };
+  }
+
+  setEngine(speed, boost = 0) {
+    const e = this._engine;
+    if (!e || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const f = 52 + speed * 120 + boost * 38;
+    e.a.frequency.setTargetAtTime(f, now, 0.06);
+    e.b.frequency.setTargetAtTime(f * 1.5, now, 0.06);
+    e.filter.frequency.setTargetAtTime(380 + speed * 1500 + boost * 700, now, 0.08);
+    e.gain.gain.setTargetAtTime(0.045 + speed * 0.04, now, 0.1);
+  }
+
+  stopEngine() {
+    const e = this._engine;
+    if (!e || !this.ctx) return;
+    this._engine = null;
+    const now = this.ctx.currentTime;
+    e.gain.gain.setTargetAtTime(0.0001, now, 0.08);
+    e.a.stop(now + 0.4);
+    e.b.stop(now + 0.4);
+  }
 }
