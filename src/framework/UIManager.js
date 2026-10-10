@@ -1,38 +1,40 @@
+import { bindGameCards, playLandingIntro } from './landingMotion.js';
+
 /**
  * UIManager - High-tech cyberpunk arcade shell, landing page, and overlay manager.
  */
 // Per-game accent colour + line icon for the landing page cards.
 const GAME_THEMES = {
   'cyber-tanks': {
-    accent: '#38bdf8',
+    accent: '#3b82f6',
     icon: '<svg viewBox="0 0 32 32"><rect x="5" y="17" width="22" height="8" rx="4"/><path d="M10 17v-3h10v3M20 15.5h8"/><circle cx="10" cy="21" r="1"/><circle cx="16" cy="21" r="1"/><circle cx="22" cy="21" r="1"/></svg>'
   },
   'astro-blaster': {
-    accent: '#a78bfa',
+    accent: '#8b5cf6',
     icon: '<svg viewBox="0 0 32 32"><path d="M16 3c4 3 6 8 6 13v6h-12v-6c0-5 2-10 6-13z"/><circle cx="16" cy="13" r="2.2"/><path d="M10 19l-4 5 4-1M22 19l4 5-4-1M14 25l2 4 2-4"/></svg>'
   },
   'overdrive': {
-    accent: '#f472b6',
+    accent: '#ff6b9d',
     icon: '<svg viewBox="0 0 32 32"><path d="M5 20l2-6c.4-1.2 1.4-2 2.7-2h12.6c1.3 0 2.3.8 2.7 2l2 6v4H5z"/><circle cx="10" cy="24" r="2.2"/><circle cx="22" cy="24" r="2.2"/><path d="M9 17h14"/></svg>'
   },
   'cyber-runner': {
-    accent: '#34d399',
+    accent: '#22c55e',
     icon: '<svg viewBox="0 0 32 32"><circle cx="19" cy="6" r="2.4"/><path d="M15 12l4-1.5 3 4 4 1M15 12l-3 5 5 3-1 7M17 20l4 2.5 1.5 4.5M12 17l-5 1.5"/></svg>'
   },
   'pinball': {
-    accent: '#e11d48',
+    accent: '#ef4444',
     icon: '<svg viewBox="0 0 32 32"><circle cx="16" cy="9" r="3.2"/><circle cx="9" cy="14" r="2.2"/><circle cx="23" cy="14" r="2.2"/><path d="M6 25l7 2.5M26 25l-7 2.5M5 5v18M27 5v18"/></svg>'
   },
   'maze-paint': {
-    accent: '#fb923c',
+    accent: '#ff9f1c',
     icon: '<svg viewBox="0 0 32 32"><rect x="5" y="5" width="9" height="9" rx="2"/><rect x="18" y="5" width="9" height="9" rx="2"/><rect x="5" y="18" width="9" height="9" rx="2"/><path d="M14 9.5h4M9.5 14v4M22.5 14v8M14 22.5h4"/></svg>'
   },
   'pattern-recall': {
-    accent: '#22d3ee',
+    accent: '#14b8a6',
     icon: '<svg viewBox="0 0 32 32"><path d="M3 16s5-8 13-8 13 8 13 8-5 8-13 8S3 16 3 16z"/><circle cx="16" cy="16" r="3.5"/></svg>'
   },
   default: {
-    accent: '#38bdf8',
+    accent: '#3b82f6',
     icon: '<svg viewBox="0 0 32 32"><rect x="4" y="10" width="24" height="13" rx="6"/><path d="M10 14v5M7.5 16.5h5M21 15.5h.01M24 18.5h.01"/></svg>'
   }
 };
@@ -142,6 +144,7 @@ export class UIManager {
       this.hudContainer.innerHTML = '';
     }
     this.renderLandingGames();
+    playLandingIntro();
   }
 
   hideLandingPage() {
@@ -168,38 +171,45 @@ export class UIManager {
 
       return `
         <article class="landing-card" data-game="${g.id}" style="--card-glow: ${theme.accent};">
-          <div class="card-hero-banner">
-            <div class="card-icon-wrap" aria-hidden="true">${theme.icon}</div>
-            <div class="card-badge-row">
-              <span class="card-badge">${g.badge}</span>
-              <span class="card-badge meta">${g.players}</span>
-            </div>
-          </div>
-
-          <div class="card-body">
-            <h3 class="card-title">${g.name}</h3>
-            <h4 class="card-subtitle">${g.subtitle}</h4>
-            <p class="card-desc">${g.description}</p>
-
-            <div class="card-mode-selector">
-              <span class="mode-label">Mode</span>
-              <div class="mode-options" id="modes-${g.id}" role="group" aria-label="Game mode">
-                ${g.modes.map(mode => `
-                  <button type="button" class="mode-chip ${mode === currentSelectedMode ? 'active' : ''}" data-game="${g.id}" data-mode="${mode}">${mode}</button>
-                `).join('')}
+          <div class="card-tilt">
+            <div class="card-hero-banner">
+              <span class="card-orb a" aria-hidden="true"></span>
+              <span class="card-orb b" aria-hidden="true"></span>
+              <div class="card-icon-wrap" aria-hidden="true">${theme.icon}</div>
+              <div class="card-badge-row">
+                <span class="card-badge">${g.badge}</span>
+                <span class="card-badge meta">${g.players}</span>
               </div>
             </div>
 
-            <div class="card-actions">
-              <button class="launch-card-btn" data-game="${g.id}">
-                <span>Play now</span>
-                <svg class="btn-arrow" viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M4 10h12m0 0-5-5m5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
+            <div class="card-body">
+              <h3 class="card-title">${g.name}</h3>
+              <h4 class="card-subtitle">${g.subtitle}</h4>
+              <p class="card-desc">${g.description}</p>
+
+              <div class="card-mode-selector">
+                <span class="mode-label">Mode</span>
+                <div class="mode-options" id="modes-${g.id}" role="group" aria-label="Game mode">
+                  ${g.modes.map(mode => `
+                    <button type="button" class="mode-chip ${mode === currentSelectedMode ? 'active' : ''}" data-game="${g.id}" data-mode="${mode}">${mode}</button>
+                  `).join('')}
+                </div>
+              </div>
+
+              <div class="card-actions">
+                <button class="launch-card-btn" data-game="${g.id}">
+                  <span>Play now</span>
+                  <svg class="btn-arrow" viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M4 10h12m0 0-5-5m5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </div>
             </div>
+            <span class="card-sheen" aria-hidden="true"></span>
           </div>
         </article>
       `;
     }).join('');
+
+    bindGameCards(container, games.map(g => g.name));
 
     // Mode chips click handler
     container.querySelectorAll('.mode-chip').forEach(chip => {
