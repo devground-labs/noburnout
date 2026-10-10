@@ -176,6 +176,20 @@ export class OverdriveGame extends BaseGame {
     this.resize(true);
   }
 
+  /** Engine hum plus the looping tune (a little faster for Rush Race). */
+  startAudio() {
+    const a = this.audio;
+    if (!a) return;
+    a.stopMusic();
+    a.startEngine();
+    a.startMusic(this.isRush ? 140 : 124);
+  }
+
+  stopAudio() {
+    this.audio?.stopEngine();
+    this.audio?.stopMusic();
+  }
+
   start(mode) {
     super.start(mode);
     this.isRush = mode === RUSH_MODE;
@@ -195,6 +209,7 @@ export class OverdriveGame extends BaseGame {
 
   destroy() {
     super.destroy();
+    this.stopAudio();
     this.composer?.dispose();
     this.ownScene?.traverse(o => {
       o.geometry?.dispose();
@@ -632,6 +647,7 @@ export class OverdriveGame extends BaseGame {
 
     this.setHudState(false);
     this.updateHUD();
+    this.startAudio();
   }
 
   disposeObject(obj) {
@@ -669,6 +685,8 @@ export class OverdriveGame extends BaseGame {
       });
     }
     this.setHudState(true);
+    this.stopAudio();
+    this.audio?.crash();
   }
 
   update(dt, input) {
@@ -703,6 +721,7 @@ export class OverdriveGame extends BaseGame {
 
     // --- Progress ---------------------------------------------------------
     this.speed = Math.min(MAX_SPEED, this.speed + dt * 1.8);
+    this.audio?.setEngine(THREE.MathUtils.clamp((this.speed - START_SPEED) / (MAX_SPEED - START_SPEED), 0, 1), 0);
     this.score += this.speed * dt * 0.1;
     this.scrollWorld(this.speed, dt);
 
@@ -742,6 +761,8 @@ export class OverdriveGame extends BaseGame {
           const bonus = 25 * Math.min(this.combo, 8);
           this.score += bonus;
           this.showToast(`NEAR MISS +${bonus}`);
+          this.audio?.whoosh(0.22, 3200, 700, 0.18);
+          this.audio?.beep(880 + Math.min(this.combo, 8) * 60, 0.08, 'square', 0.12);
         } else {
           this.combo = 0;
         }
@@ -1057,6 +1078,7 @@ export class OverdriveGame extends BaseGame {
     }
     this.setCountdown('');
     this.updateRushHud();
+    this.startAudio();
   }
 
   setCountdown(label) {
@@ -1090,6 +1112,7 @@ export class OverdriveGame extends BaseGame {
     R.punchCd = 0.35;
     R.punchAnim = 0.28;
     R.punchSide = side;
+    this.audio?.whoosh(0.16, 2200, 600, 0.2);
     const px = this.car.position.x;
     for (const r of this.riders) {
       const dz = r.mesh.position.z;
@@ -1107,7 +1130,7 @@ export class OverdriveGame extends BaseGame {
       }
       this.showToast(knockout ? 'KNOCKOUT!' : 'BONK!');
       this.burst(r.mesh.position, knockout ? 18 : 10);
-      this.audio?.hit();
+      this.audio?.thump();
       return;
     }
   }
@@ -1120,7 +1143,7 @@ export class OverdriveGame extends BaseGame {
     this.speed *= 0.65;
     this.shake = Math.max(this.shake, 0.6);
     this.showToast('OUCH!');
-    this.audio?.hit();
+    this.audio?.thump();
   }
 
   wipeout() {
@@ -1132,7 +1155,7 @@ export class OverdriveGame extends BaseGame {
     this.shake = 1;
     this.showToast('WIPEOUT!');
     this.burst(this.car.position, 20);
-    this.audio?.explosion?.(0.6);
+    this.audio?.crash();
   }
 
   aiThink(r, z) {
@@ -1174,12 +1197,13 @@ export class OverdriveGame extends BaseGame {
       if (label !== R.lastLabel) {
         R.lastLabel = label;
         this.setCountdown(label);
-        this.audio?.click();
+        if (label === 'GO!') this.audio?.beep(1040, 0.4, 'square', 0.28);
+        else this.audio?.beep(520, 0.14, 'square', 0.25);
       }
       if (R.t >= 2.4) {
         R.state = 'race';
         R.clock = 0;
-        this.audio?.chime();
+        this.audio?.boostSweep();
       }
     }
     const racing = R.state === 'race';
@@ -1212,6 +1236,7 @@ export class OverdriveGame extends BaseGame {
     if (Math.abs(this.car.position.x) >= CAR_X_LIMIT) this.carVel *= 0.3;
 
     const wantBoost = racing && R.wipe <= 0 && R.boost > 0.02 && (keys['Space'] || keys['ShiftLeft'] || keys['ShiftRight'] || this._touchBoost);
+    if (wantBoost && !R.boosting) this.audio?.boostSweep();
     R.boosting = !!wantBoost;
     R.boost = wantBoost ? Math.max(0, R.boost - dt * 0.4) : Math.min(1, R.boost + dt * 0.1);
 
@@ -1222,6 +1247,7 @@ export class OverdriveGame extends BaseGame {
     this.speed += (top - this.speed) * Math.min(1, dt * rate);
     R.progress += this.speed * dt;
     this.score = R.progress;
+    this.audio?.setEngine(THREE.MathUtils.clamp(this.speed / BOOST_TOP, 0, 1), R.boosting ? 1 : 0);
 
     // --- Punching -------------------------------------------------------
     if (racing && R.punchCd <= 0 && R.wipe <= 0) {
@@ -1269,6 +1295,8 @@ export class OverdriveGame extends BaseGame {
           R.nearMisses++;
           R.boost = Math.min(1, R.boost + 0.15);
           this.showToast('NEAR MISS +BOOST');
+          this.audio?.whoosh(0.22, 3200, 700, 0.18);
+          this.audio?.beep(990, 0.08, 'square', 0.12);
         }
       }
     }
@@ -1380,6 +1408,7 @@ export class OverdriveGame extends BaseGame {
     R.finishOrder.push('player');
     R.doneTimer = 0;
     this.showToast('FINISH!');
+    this.audio?.stopMusic();
     this.audio?.[R.position <= 3 ? 'victory' : 'chime']?.();
   }
 
@@ -1392,6 +1421,7 @@ export class OverdriveGame extends BaseGame {
     const t = R.finishTime;
     h.rstats.textContent = `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')} · ${R.hits} bonk${R.hits === 1 ? '' : 's'} · ${R.wipeouts} wipeout${R.wipeouts === 1 ? '' : 's'}`;
     h.rover.classList.add('show');
+    this.audio?.stopEngine();
   }
 
   updateRushHud() {
