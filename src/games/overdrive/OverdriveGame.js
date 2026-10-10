@@ -51,6 +51,39 @@ function makeCanvasTexture(w, h, draw) {
   return tex;
 }
 
+// ---------------------------------------------------------------------------
+// Rider rig helpers: rounded limb segments joined by a two-bone solve, so hands
+// always land on the grips and feet on the pegs.
+// ---------------------------------------------------------------------------
+const UP = new THREE.Vector3(0, 1, 0);
+
+/** A capsule whose total height is `total`, ready to be stretched between two points. */
+function limbMesh(radius, total, material) {
+  const geo = new THREE.CapsuleGeometry(radius, Math.max(0.01, total - radius * 2), 6, 14);
+  const m = new THREE.Mesh(geo, material);
+  m.userData.total = total;
+  return m;
+}
+
+function placeLimb(mesh, a, b) {
+  const dir = new THREE.Vector3().subVectors(b, a);
+  const len = dir.length() || 1e-4;
+  mesh.position.copy(a).addScaledVector(dir, 0.5);
+  mesh.quaternion.setFromUnitVectors(UP, dir.divideScalar(len));
+  mesh.scale.y = len / mesh.userData.total;
+}
+
+/** Two-bone solve: the middle joint (elbow / knee) for a limb reaching from root to target. */
+function solveTwoBone(root, target, l1, l2, pole, out = new THREE.Vector3()) {
+  const toT = new THREE.Vector3().subVectors(target, root);
+  const dist = THREE.MathUtils.clamp(toT.length(), 0.05, l1 + l2 - 0.001);
+  const dir = toT.normalize();
+  const a = (l1 * l1 - l2 * l2 + dist * dist) / (2 * dist);
+  const h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+  const p = pole.clone().addScaledVector(dir, -pole.dot(dir)).normalize();
+  return out.copy(root).addScaledVector(dir, a).addScaledVector(p, h);
+}
+
 export class OverdriveGame extends BaseGame {
   constructor() {
     super({
@@ -825,34 +858,7 @@ export class OverdriveGame extends BaseGame {
     lamp.position.set(0, 1.55, -1.3);
     bike.add(lamp);
 
-    // The rider: leaning into the wind, with a big round helmet
-    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.34, 0.7, 6, 14), suitMat);
-    torso.position.set(0, 2.15, 0.25);
-    torso.rotation.x = -0.6;
-    bike.add(torso);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.42, 18, 14), new THREE.MeshStandardMaterial({ color: helmet, roughness: 0.3 }));
-    head.position.set(0, 2.85, -0.2);
-    bike.add(head);
-    const visor = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 0.2), darkMat);
-    visor.position.set(0, 2.85, -0.58);
-    bike.add(visor);
-    [-1, 1].forEach(side => {
-      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.1, 8), suitMat);
-      arm.position.set(side * 0.45, 2.0, -0.35);
-      arm.rotation.x = -1.0;
-      bike.add(arm);
-    });
-
-    // Boxing gloves that pop out for a punch
-    const gloveMat = new THREE.MeshStandardMaterial({ color: 0xff4d5e, roughness: 0.4 });
-    const gloves = {};
-    [-1, 1].forEach(side => {
-      const g = new THREE.Mesh(new THREE.SphereGeometry(0.34, 14, 10), gloveMat);
-      g.visible = false;
-      g.position.set(side * 0.5, 2.0, -0.6);
-      bike.add(g);
-      gloves[side] = g;
-    });
+    bike.userData.rig = this.buildRider(bike, { suit: accent, helmet });
 
     // Soft blob shadow
     const shadowTex = makeCanvasTexture(64, 64, (ctx, w, h) => {
@@ -871,8 +877,85 @@ export class OverdriveGame extends BaseGame {
     bike.add(shadow);
 
     bike.userData.wheels = wheels;
-    bike.userData.gloves = gloves;
     return bike;
+  }
+
+  /**
+   * A cartoon rider: pelvis on the seat, torso leaning into the wind, a helmet, and two-bone
+   * arms and legs that reach the handlebar grips and the footpegs.
+   */
+  buildRider(bike, { suit, helmet }) {
+    const suitMat = new THREE.MeshStandardMaterial({ color: suit, roughness: 0.55 });
+    const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1b2150, roughness: 0.65 });
+    const handMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+    const bootMat = new THREE.MeshStandardMaterial({ color: 0x0b1230, roughness: 0.6 });
+    const gloveMat = new THREE.MeshStandardMaterial({ color: 0xff4d5e, roughness: 0.4 });
+
+    const hips = new THREE.Vector3(0, 1.72, 0.65);
+    const shoulders = new THREE.Vector3(0, 2.42, -0.02);
+    const rig = {
+      arms: {}, legs: {},
+      A: 0.7, B: 0.7,
+      grip: { '-1': new THREE.Vector3(-0.62, 1.7, -1.0), 1: new THREE.Vector3(0.62, 1.7, -1.0) },
+      shoulder: { '-1': new THREE.Vector3(-0.33, 2.4, 0.02), 1: new THREE.Vector3(0.33, 2.4, 0.02) },
+      punchPose: 0, // which arm is currently in a punch pose (0 = none)
+      scratch: new THREE.Vector3()
+    };
+
+    // Pelvis and torso
+    const pelvis = new THREE.Mesh(new THREE.SphereGeometry(0.4, 18, 14), pantsMat);
+    pelvis.position.copy(hips);
+    bike.add(pelvis);
+    const torso = limbMesh(0.36, hips.distanceTo(shoulders) + 0.3, suitMat);
+    placeLimb(torso, hips, shoulders);
+    torso.scale.y = 1; // keep the rounded caps true; they overlap the pelvis and shoulders
+    bike.add(torso);
+
+    // Head and helmet, sitting on the shoulders
+    const headPos = new THREE.Vector3(0, 2.92, -0.28);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 20, 16), new THREE.MeshStandardMaterial({ color: helmet, roughness: 0.3 }));
+    head.position.copy(headPos);
+    bike.add(head);
+    const visor = new THREE.Mesh(new RoundedBoxGeometry(0.62, 0.22, 0.3, 2, 0.08), new THREE.MeshStandardMaterial({ color: 0x1b2150, roughness: 0.2 }));
+    visor.position.set(0, 2.92, -0.62);
+    bike.add(visor);
+
+    // Legs: thigh and shin to a boot on each footpeg
+    [-1, 1].forEach(side => {
+      const hip = new THREE.Vector3(side * 0.22, 1.72, 0.62);
+      const foot = new THREE.Vector3(side * 0.52, 0.82, 0.42);
+      const knee = solveTwoBone(hip, foot, 0.85, 0.85, new THREE.Vector3(side * 0.4, 0.1, -1));
+      const thigh = limbMesh(0.19, 0.85, pantsMat);
+      placeLimb(thigh, hip, knee);
+      const shin = limbMesh(0.16, 0.85, pantsMat);
+      placeLimb(shin, knee, foot);
+      const boot = new THREE.Mesh(new RoundedBoxGeometry(0.3, 0.22, 0.62, 2, 0.08), bootMat);
+      boot.position.copy(foot).add(new THREE.Vector3(0, -0.04, -0.12));
+      bike.add(thigh, shin, boot);
+    });
+
+    // Arms: posed every frame a punch is in flight, otherwise resting on the grips
+    [-1, 1].forEach(side => {
+      const upper = limbMesh(0.15, rig.A, suitMat);
+      const fore = limbMesh(0.13, rig.B, suitMat);
+      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.17, 14, 10), handMat);
+      const glove = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 12), gloveMat);
+      glove.visible = false;
+      bike.add(upper, fore, hand, glove);
+      rig.arms[side] = { upper, fore, hand, glove };
+      this.poseArm(rig, side, rig.grip[side]);
+    });
+    return rig;
+  }
+
+  poseArm(rig, side, target) {
+    const arm = rig.arms[side];
+    const sh = rig.shoulder[side];
+    const elbow = solveTwoBone(sh, target, rig.A, rig.B, new THREE.Vector3(side * 0.9, -0.2, 0.6), rig.scratch);
+    placeLimb(arm.upper, sh, elbow);
+    placeLimb(arm.fore, elbow, target);
+    arm.hand.position.copy(target);
+    arm.glove.position.copy(target);
   }
 
   buildFinishLine() {
@@ -944,7 +1027,7 @@ export class OverdriveGame extends BaseGame {
       const mesh = this.buildBike({ body: RIDER_COLORS[i], accent: suits[i], helmet: i % 2 ? 0xffffff : 0x1b2150 });
       this.ownScene.add(mesh);
       return {
-        id: i, mesh, wheels: mesh.userData.wheels, gloves: mesh.userData.gloves, color: RIDER_COLORS[i],
+        id: i, mesh, wheels: mesh.userData.wheels, color: RIDER_COLORS[i],
         x, targetX: x, progress: ahead, speed: 0, base: AI_SPEEDS[i] + (Math.random() - 0.5) * 6,
         stun: 0, down: 0, hits: 0, punchCd: 1.5 + Math.random() * 2, punchAnim: 0, punchSide: 1,
         thinkT: Math.random() * 0.4, finished: false
@@ -1232,7 +1315,7 @@ export class OverdriveGame extends BaseGame {
       m.rotation.y = r.down > 0 ? (r.down / 1.5) * Math.PI * 4 : 0;
       m.rotation.z = -(r.targetX - r.x) * 0.06 + (r.stun > 0 ? Math.sin(R.t * 34 + r.id) * 0.14 : 0);
       r.wheels.forEach(w => (w.rotation.x -= r.speed * dt * 0.4));
-      this.animateGloves(m, r.punchAnim, r.punchSide, r.gloves);
+      this.animateGloves(m, r.punchAnim, r.punchSide);
     }
 
     // --- Finish line ------------------------------------------------------
@@ -1251,17 +1334,27 @@ export class OverdriveGame extends BaseGame {
     this.placeCamera(dt);
   }
 
-  animateGloves(bike, anim, side, gloves = bike.userData.gloves) {
-    if (!gloves) return;
-    [-1, 1].forEach(s => {
-      const g = gloves[s];
-      const on = anim > 0 && s === side;
-      g.visible = on;
-      if (on) {
-        const t = 1 - anim / 0.28;
-        g.position.x = s * (0.5 + Math.sin(t * Math.PI) * 1.3);
-      }
-    });
+  animateGloves(bike, anim, side) {
+    const rig = bike.userData.rig;
+    if (!rig) return;
+    if (anim > 0) {
+      // Extend the punching arm out to the side, then pull it back
+      const t = 1 - anim / 0.28;
+      const k = Math.sin(t * Math.PI);
+      const grip = rig.grip[side];
+      const reach = new THREE.Vector3(side * 1.75, 2.15, -0.75);
+      const target = new THREE.Vector3().lerpVectors(grip, reach, k);
+      this.poseArm(rig, side, target);
+      rig.arms[side].glove.visible = true;
+      rig.arms[side].hand.visible = false;
+      rig.punchPose = side;
+    } else if (rig.punchPose) {
+      const s = rig.punchPose;
+      this.poseArm(rig, s, rig.grip[s]);
+      rig.arms[s].glove.visible = false;
+      rig.arms[s].hand.visible = true;
+      rig.punchPose = 0;
+    }
   }
 
   finishRace() {
