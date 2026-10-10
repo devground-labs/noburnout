@@ -15,12 +15,16 @@ import '@fontsource/jetbrains-mono/latin-800.css';
 import '@fontsource/orbitron/latin-600.css';
 import '@fontsource/orbitron/latin-800.css';
 import '@fontsource/orbitron/latin-900.css';
+import '@fontsource/fredoka/latin-600.css';
+import '@fontsource/fredoka/latin-700.css';
+import '@fontsource/press-start-2p/latin-400.css';
 import '@fontsource/rajdhani/latin-600.css';
 import '@fontsource/rajdhani/latin-700.css';
 
 import { Engine } from './framework/Engine.js';
 import { UIManager } from './framework/UIManager.js';
 import { showVisitorCount } from './framework/visitors.js';
+import { initLandingMotion } from './framework/landingMotion.js';
 import { CyberTanksGame } from './games/cyber-tanks/CyberTanksGame.js';
 import { AstroBlasterGame } from './games/astro-blaster/AstroBlasterGame.js';
 import { OverdriveGame } from './games/overdrive/OverdriveGame.js';
@@ -49,6 +53,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   engine.registry.register(MazePaintGame);
   engine.registry.register(PatternRecallGame);
   engine.registry.register(CyberTanksGame);
+
+  initLandingMotion();
 
   // Start with Landing Page and 3D ambient cyber grid lobby
   ui.showLandingPage();

@@ -4,6 +4,7 @@ import { AudioManager } from './AudioManager.js';
 import { InputManager } from './InputManager.js';
 import { PhysicsWorld } from './PhysicsWorld.js';
 import { GameRegistry } from './GameRegistry.js';
+import { LobbyScene } from './LobbyScene.js';
 
 /**
  * Master Game Engine Orchestrator
@@ -82,6 +83,8 @@ export class Engine {
 
   initLobby() {
     this.isLobby = true;
+    this.lobby?.dispose();
+    this.lobby = null;
     if (this.currentGame) {
       try {
         this.currentGame.destroy();
@@ -94,50 +97,14 @@ export class Engine {
     this._clearScene();
     this.physics.clear();
 
-    // Setup ambient 3D cyber grid & particle nebula for the Lobby
+    // The scene state the games start from (the lobby hands it back when it is disposed)
     this.scene.background = new THREE.Color(0x040714);
     this.scene.fog = new THREE.FogExp2(0x040714, 0.018);
-
     this.camera.position.set(0, 15, 26);
     this.camera.lookAt(0, 2, 0);
 
-    const ambLight = new THREE.AmbientLight(0x1e293b, 1.2);
-    this.scene.add(ambLight);
-
-    const dirLight = new THREE.DirectionalLight(0x38bdf8, 2.0);
-    dirLight.position.set(20, 40, 20);
-    this.scene.add(dirLight);
-
-    const pointLight = new THREE.PointLight(0xa855f7, 3, 50);
-    pointLight.position.set(-15, 10, -5);
-    this.scene.add(pointLight);
-
-    // Cyber grid
-    const gridHelper = new THREE.GridHelper(120, 60, 0x38bdf8, 0x1e293b);
-    gridHelper.position.y = -2;
-    gridHelper.material.opacity = 0.55;
-    gridHelper.material.transparent = true;
-    this.scene.add(gridHelper);
-    this.lobbyGrid = gridHelper;
-
-    // Ambient floating particles
-    const particleCount = 200;
-    const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(particleCount * 3);
-    for (let i = 0; i < particleCount * 3; i += 3) {
-      positions[i] = (Math.random() - 0.5) * 80;
-      positions[i + 1] = Math.random() * 30;
-      positions[i + 2] = (Math.random() - 0.5) * 80;
-    }
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const pMaterial = new THREE.PointsMaterial({
-      color: 0x38bdf8,
-      size: 0.35,
-      transparent: true,
-      opacity: 0.6
-    });
-    this.lobbyParticles = new THREE.Points(geometry, pMaterial);
-    this.scene.add(this.lobbyParticles);
+    // The landing page's 3D backdrop
+    this.lobby = new LobbyScene(this);
   }
 
   returnToLobby() {
@@ -155,7 +122,9 @@ export class Engine {
       return;
     }
 
-    // 1. Destroy and cleanup existing game
+    // 1. Destroy and cleanup existing game (and the landing page's 3D backdrop)
+    this.lobby?.dispose();
+    this.lobby = null;
     if (this.currentGame) {
       try {
         this.currentGame.destroy();
@@ -199,8 +168,6 @@ export class Engine {
         }
       }
     }
-    this.lobbyGrid = null;
-    this.lobbyParticles = null;
   }
 
   _loop() {
@@ -221,13 +188,7 @@ export class Engine {
     TWEEN.update();
 
     if (this.isLobby) {
-      // Gentle lobby animations
-      if (this.lobbyGrid) {
-        this.lobbyGrid.rotation.y += 0.0008;
-      }
-      if (this.lobbyParticles) {
-        this.lobbyParticles.rotation.y -= 0.0004;
-      }
+      this.lobby?.update(dt);
       this.renderer.render(this.scene, this.camera);
     } else if (this.currentGame && this.currentGame.isRunning && !this.currentGame.isPaused) {
       this.physics.step(dt);

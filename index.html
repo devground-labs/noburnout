@@ -14,7 +14,7 @@
 
   <!-- Fullscreen Landing Page & Game Selector -->
   <section class="landing-page" id="landing-page">
-    <header class="lp-nav">
+    <header class="lp-nav" id="lp-nav">
       <div class="lp-nav-inner">
         <a class="lp-brand" data-scroll="lp-top" href="#" aria-label="NoBurnout home">
           <svg class="lp-logo" viewBox="0 0 32 32" aria-hidden="true">
@@ -34,30 +34,38 @@
           <button class="nav-btn icon-btn" id="landing-fullscreen" title="Toggle Fullscreen" aria-label="Toggle fullscreen"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
         </div>
       </div>
+      <div class="lp-progress" aria-hidden="true"><i id="lp-progress-bar"></i></div>
     </header>
 
-    <main class="lp-container" id="lp-top">
-      <section class="lp-hero">
-        <span class="lp-eyebrow"><i></i>Made for engineers · Free to play</span>
-        <h1 class="lp-title">Step away from the terminal.<br><span>Come back sharper.</span></h1>
-        <p class="lp-lead">Short, satisfying browser games for software engineers in the age of AI. No installs, no accounts, no streaks to keep up. Just a few minutes of fun between prompts, builds and code reviews.</p>
-        <div class="lp-cta">
-          <button class="lp-btn primary" data-scroll="lp-games" type="button">Pick a game
-            <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M10 3v12m0 0-5-5m5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-          <button class="lp-btn ghost" data-scroll="lp-features" type="button">Why NoBurnout</button>
+    <main class="lp-container" id="lp-main">
+      <section class="lp-hero" id="lp-top">
+        <div class="lp-hero-copy" id="lp-hero-copy">
+          <span class="lp-eyebrow"><i></i>Free · Instant · No sign-up</span>
+          <h1 class="lp-title" id="lp-title">Level up your<br><em>coffee break.</em></h1>
+          <p class="lp-lead">Arcade classics, brain puzzles and a few things that go boom. Pick one, play for five minutes, and get back to the build feeling sharper. No installs, no accounts, no streaks.</p>
+          <div class="lp-cta">
+            <button class="lp-btn primary" data-scroll="lp-games" type="button">Play now
+              <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M10 3v12m0 0-5-5m5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="lp-btn ghost" data-scroll="lp-features" type="button">Why NoBurnout?</button>
+          </div>
         </div>
-        <dl class="lp-stats">
-          <div><dt id="lp-game-count">4</dt><dd>Games</dd></div>
-          <div><dt>1–2</dt><dd>Players</dd></div>
-          <div id="lp-visitors" title="Counts each visitor once a day. We keep only an anonymous hash of the IP for 24 hours to avoid double counting."><dt>0</dt><dd>Installs</dd></div>
-          <div><dt>0</dt><dd>Accounts</dd></div>
-        </dl>
+        <div class="lp-scrollcue" aria-hidden="true"><span>Scroll</span><i></i></div>
       </section>
 
+      <dl class="lp-stats" id="lp-stats">
+        <div><dt id="lp-game-count">4</dt><dd>Games</dd></div>
+        <div><dt>1–2</dt><dd>Players</dd></div>
+        <div id="lp-visitors" title="Counts each visitor once a day. We keep only an anonymous hash of the IP for 24 hours to avoid double counting."><dt>0</dt><dd>Installs</dd></div>
+        <div><dt>0</dt><dd>Accounts</dd></div>
+      </dl>
+
+      <div class="lp-marquee" aria-hidden="true"><div class="lp-marquee-track" id="lp-marquee-track"></div></div>
+
       <section class="lp-section" id="lp-games">
-        <div class="lp-section-head">
-          <h2>Choose a game</h2>
+        <div class="lp-section-head" data-reveal>
+          <span class="lp-kicker">Level 01 · Games</span>
+          <h2>Choose your game</h2>
           <p>Pick something quick. Most rounds take just a few minutes.</p>
         </div>
         <div class="landing-games-grid" id="landing-games-grid">
@@ -66,37 +74,47 @@
       </section>
 
       <section class="lp-section" id="lp-features">
-        <div class="lp-section-head">
+        <div class="lp-section-head" data-reveal>
+          <span class="lp-kicker">Level 02 · Why</span>
           <h2>Why NoBurnout</h2>
           <p>Because the best way to stay productive is to actually take a break.</p>
         </div>
         <div class="lp-features">
           <article class="lp-feature">
+            <div class="lp-feature-in">
             <span class="lp-ficon"><svg viewBox="0 0 24 24"><path d="M13 3 5 14h6l-1 7 8-11h-6z"/></svg></span>
             <h3>Quick to start</h3>
             <p>Open the page and play. Nothing to install, no sign-up, no waiting on a launcher.</p>
+            </div>
           </article>
           <article class="lp-feature">
+            <div class="lp-feature-in">
             <span class="lp-ficon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span>
             <h3>Easy to put down</h3>
             <p>Short rounds with no daily streaks or pressure. Play for five minutes, then get back to it.</p>
+            </div>
           </article>
           <article class="lp-feature">
+            <div class="lp-feature-in">
             <span class="lp-ficon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
             <h3>Plays anywhere</h3>
             <p>Runs in your browser on desktop or mobile, with keyboard or touch controls.</p>
+            </div>
           </article>
           <article class="lp-feature">
+            <div class="lp-feature-in">
             <span class="lp-ficon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 19c0-3.3 2.7-6 6-6s6 2.7 6 6M15 14.2c.6-.2 1.3-.3 2-.3 2.2 0 4 1.8 4 4"/></svg></span>
             <h3>Play with a teammate</h3>
             <p>Challenge a colleague on one keyboard, or play solo against the AI to blow off steam.</p>
+            </div>
           </article>
         </div>
       </section>
 
       <section class="lp-section" id="lp-contribute">
-        <div class="lp-contrib">
+        <div class="lp-contrib" data-reveal>
           <div class="lp-contrib-text">
+            <span class="lp-kicker">Bonus level · Open source</span>
             <h2>Built in the open</h2>
             <p>NoBurnout is open source and made by people who like a good break. Found a bug, got a game idea, or want to build one yourself? Your help makes it better for everyone.</p>
           </div>
