@@ -890,6 +890,7 @@ export class OverdriveGame extends BaseGame {
     const handMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
     const bootMat = new THREE.MeshStandardMaterial({ color: 0x0b1230, roughness: 0.6 });
     const gloveMat = new THREE.MeshStandardMaterial({ color: 0xff4d5e, roughness: 0.4 });
+    const cuffMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
 
     const hips = new THREE.Vector3(0, 1.72, 0.65);
     const shoulders = new THREE.Vector3(0, 2.42, -0.02);
@@ -939,7 +940,19 @@ export class OverdriveGame extends BaseGame {
       const upper = limbMesh(0.15, rig.A, suitMat);
       const fore = limbMesh(0.13, rig.B, suitMat);
       const hand = new THREE.Mesh(new THREE.SphereGeometry(0.17, 14, 10), handMat);
-      const glove = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 12), gloveMat);
+      // A boxing glove: padded fist, a thumb along the side, and a white cuff at the wrist.
+      // Local +Y points along the forearm toward the knuckles.
+      const glove = new THREE.Group();
+      const fist = new THREE.Mesh(new THREE.SphereGeometry(0.36, 20, 16), gloveMat);
+      fist.scale.set(1, 1.2, 0.95);
+      fist.position.y = 0.2;
+      const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.22, 4, 10), gloveMat);
+      thumb.position.set(0.3, 0.08, 0.14);
+      thumb.rotation.z = -0.35;
+      const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.23, 0.28, 18), cuffMat);
+      cuff.position.y = -0.2;
+      glove.add(fist, thumb, cuff);
+      glove.scale.x = side; // mirror the thumb for the left hand
       glove.visible = false;
       bike.add(upper, fore, hand, glove);
       rig.arms[side] = { upper, fore, hand, glove };
@@ -956,6 +969,8 @@ export class OverdriveGame extends BaseGame {
     placeLimb(arm.fore, elbow, target);
     arm.hand.position.copy(target);
     arm.glove.position.copy(target);
+    // Point the glove along the forearm, toward where the punch is going
+    arm.glove.quaternion.setFromUnitVectors(UP, new THREE.Vector3().subVectors(target, elbow).normalize());
   }
 
   buildFinishLine() {
