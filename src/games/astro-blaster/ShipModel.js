@@ -83,10 +83,12 @@ export function createAsteroidMesh(radius = 1.8) {
   }
   geo.computeVertexNormals();
 
+  // Chunky, faceted toy rocks in warm, light colours so they read against the indigo space
+  const rocks = [0xffb4a2, 0xffe08a, 0xb8f2d0, 0xffc4dd, 0xbfe6ff];
   const mat = new THREE.MeshStandardMaterial({
-    color: 0x94a3b8, // Much lighter grey
-    roughness: 0.85,
-    metalness: 0.15,
+    color: rocks[Math.floor(Math.random() * rocks.length)],
+    roughness: 0.6,
+    metalness: 0,
     flatShading: true
   });
   return new THREE.Mesh(geo, mat);

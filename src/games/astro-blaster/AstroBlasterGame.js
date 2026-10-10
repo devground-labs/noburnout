@@ -44,11 +44,16 @@ export class AstroBlasterGame extends BaseGame {
   async init(engine) {
     await super.init(engine);
 
-    // Deep space lighting
-    const amb = new THREE.AmbientLight(0x475569, 3.5); // Brighter ambient light
+    // A deep-indigo toy-box cosmos (the previous background/fog come back in destroy())
+    this._prevBackground = this.scene.background;
+    this._prevFog = this.scene.fog;
+    this.scene.background = new THREE.Color(0x161a5e);
+    this.scene.fog = new THREE.FogExp2(0x161a5e, 0.012);
+
+    const amb = new THREE.AmbientLight(0x9aa5ff, 3.2);
     this.scene.add(amb);
 
-    const dir = new THREE.DirectionalLight(0x7dd3fc, 2.5); // Brighter directional light
+    const dir = new THREE.DirectionalLight(0xffffff, 2.6);
     dir.position.set(10, 30, -20);
     this.scene.add(dir);
 
@@ -84,10 +89,10 @@ export class AstroBlasterGame extends BaseGame {
     }
     lowerStarGeo.setAttribute('position', new THREE.BufferAttribute(lowerStarPositions, 3));
     const lowerStarMat = new THREE.PointsMaterial({
-      color: 0x93c5fd,
-      size: 1.0,
+      color: 0xffffff,
+      size: 1.2,
       transparent: true,
-      opacity: 0.6
+      opacity: 0.85
     });
     this.lowerStarfield = new THREE.Points(lowerStarGeo, lowerStarMat);
     this.scene.add(this.lowerStarfield);
@@ -183,12 +188,12 @@ export class AstroBlasterGame extends BaseGame {
   spawnPlanet() {
     const radius = 25 + Math.random() * 15;
     const geo = new THREE.SphereGeometry(radius, 32, 32);
-    const colors = [0x1e3a8a, 0x064e3b, 0x4c1d95, 0x78350f, 0x831843, 0x0f766e];
+    const colors = [0xff6b5b, 0xffd23f, 0x5ee0a0, 0xff8fb8, 0x8ad8ff, 0xa78bfa];
     const color = colors[Math.floor(Math.random() * colors.length)];
     const mat = new THREE.MeshStandardMaterial({ 
       color: color, 
-      roughness: 0.8,
-      metalness: 0.2,
+      roughness: 0.55,
+      metalness: 0,
       fog: true
     });
     const mesh = new THREE.Mesh(geo, mat);
@@ -259,7 +264,7 @@ export class AstroBlasterGame extends BaseGame {
 
     [-1.8, 1.8].forEach(offsetX => {
       const geo = new THREE.CylinderGeometry(0.14, 0.14, 2.4, 6);
-      const mat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+      const mat = new THREE.MeshBasicMaterial({ color: 0xffe066 });
       const mesh = new THREE.Mesh(geo, mat);
       mesh.rotation.x = Math.PI / 2;
       mesh.position.set(this.ship.x + offsetX, this.ship.y, this.ship.z - 1.5);
@@ -511,7 +516,7 @@ export class AstroBlasterGame extends BaseGame {
     // Spawn shatter debris particles
     for (let i = 0; i < 10; i++) {
       const geo = new THREE.DodecahedronGeometry(0.3, 0);
-      const mat = new THREE.MeshBasicMaterial({ color: byLaser ? 0x38bdf8 : 0xef4444 });
+      const mat = new THREE.MeshBasicMaterial({ color: byLaser ? 0xffd23f : 0xff6b5b });
       const p = new THREE.Mesh(geo, mat);
       p.position.copy(pos);
       this.scene.add(p);
@@ -596,11 +601,11 @@ export class AstroBlasterGame extends BaseGame {
 
         <!-- Game Over Modal -->
         <div class="tank-modal-overlay" id="astro-gameover-modal" style="display: none;">
-          <div class="tank-modal-box">
-            <h2>Mission terminated</h2>
-            <p class="tank-modal-sub">Ship shields collapsed under asteroid impact.</p>
+          <div class="tank-modal-box astro-over">
+            <h2>Ship down!</h2>
+            <p class="tank-modal-sub">Your shields gave out. Ready for another run?</p>
             <div class="astro-final" id="astro-final-score">0 PTS</div>
-            <button class="primary-btn" id="astro-btn-restart">Relaunch starfighter</button>
+            <button class="primary-btn" id="astro-btn-restart">Play again</button>
           </div>
         </div>
       </div>
@@ -614,7 +619,10 @@ export class AstroBlasterGame extends BaseGame {
 
     if (scoreEl) scoreEl.textContent = this.score.toLocaleString();
     if (multEl) multEl.textContent = `x${this.multiplier.toFixed(1)}`;
-    if (shieldEl) shieldEl.style.width = `${Math.max(0, this.shield)}%`;
+    if (shieldEl) {
+      shieldEl.style.width = `${Math.max(0, this.shield)}%`;
+      shieldEl.dataset.level = this.shield > 60 ? 'ok' : this.shield > 30 ? 'mid' : 'low';
+    }
 
     this.bindTouchControls();
 
@@ -713,5 +721,9 @@ export class AstroBlasterGame extends BaseGame {
     this.camera.fov = 55;
     this.camera.position.set(0, 10, 28);
     this.camera.updateProjectionMatrix();
+    if (this._prevBackground !== undefined) {
+      this.scene.background = this._prevBackground;
+      this.scene.fog = this._prevFog;
+    }
   }
 }
