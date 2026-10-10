@@ -99,6 +99,7 @@ export class MazePaintGame extends BaseGame {
           <button type="button" class="mp-btn primary" data-mp="next"></button>
           <button type="button" class="mp-btn" data-mp="replay">Replay</button>
         </div>
+        <button type="button" class="mp-link" data-mp="reset">Reset progress</button>
       </div>`;
     this.root.querySelectorAll('[data-mp]').forEach(el => (this.els[el.dataset.mp] = el));
     engine.container.appendChild(this.root);
@@ -117,6 +118,7 @@ export class MazePaintGame extends BaseGame {
     this.els.restart.addEventListener('click', () => this.restartLevel());
     this.els.replay.addEventListener('click', () => this.restartLevel());
     this.els.next.addEventListener('click', () => this.advance());
+    this.els.reset.addEventListener('click', () => this.onResetClick());
   }
 
   start(mode) {
@@ -129,6 +131,7 @@ export class MazePaintGame extends BaseGame {
 
   destroy() {
     super.destroy();
+    clearTimeout(this._resetTimer);
     this.root?.remove();
     this.root = null;
     this.els = {};
@@ -142,6 +145,30 @@ export class MazePaintGame extends BaseGame {
   // -------------------------------------------------------------------------
   // Levels
   // -------------------------------------------------------------------------
+  // Two taps, so a stray tap can't wipe every cleared level.
+  onResetClick() {
+    const btn = this.els.reset;
+    if (!this._resetArmed) {
+      this._resetArmed = true;
+      btn.textContent = 'Tap again to erase all progress';
+      btn.classList.add('confirm');
+      this._resetTimer = setTimeout(() => this.disarmReset(), 4000);
+      return;
+    }
+    this.disarmReset();
+    this.progress = { cleared: [], best: {} };
+    saveProgress(this.progress);
+    this.loadLevel(0);
+  }
+
+  disarmReset() {
+    clearTimeout(this._resetTimer);
+    this._resetArmed = false;
+    if (!this.els.reset) return;
+    this.els.reset.textContent = 'Reset progress';
+    this.els.reset.classList.remove('confirm');
+  }
+
   loadLevel(i) {
     const level = LEVELS[i];
     this.levelIndex = i;
