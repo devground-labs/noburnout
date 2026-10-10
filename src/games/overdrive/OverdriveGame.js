@@ -191,18 +191,13 @@ export class OverdriveGame extends BaseGame {
     this.resize(true);
   }
 
-  /** Engine hum plus the looping tune (a little faster for Rush Race). */
+  /** The engine hum, whose pitch follows your speed. */
   startAudio() {
-    const a = this.audio;
-    if (!a) return;
-    a.stopMusic();
-    a.startEngine();
-    a.startMusic(this.isRush ? 140 : 124);
+    this.audio?.startEngine();
   }
 
   stopAudio() {
     this.audio?.stopEngine();
-    this.audio?.stopMusic();
   }
 
   start(mode) {
@@ -1495,7 +1490,6 @@ export class OverdriveGame extends BaseGame {
     R.finishOrder.push('player');
     R.doneTimer = 0;
     this.showToast('FINISH!');
-    this.audio?.stopMusic();
     this.audio?.[R.position <= 3 ? 'victory' : 'chime']?.();
   }
 
