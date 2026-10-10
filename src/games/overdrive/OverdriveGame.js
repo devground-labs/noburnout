@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { BaseGame } from '../../framework/BaseGame.js';
 
 // ---------------------------------------------------------------------------
@@ -21,12 +21,12 @@ const DASH_PERIOD = 20; // world units covered by one road-texture tile
 const GRID_PERIOD = 20;
 const SCENERY_SPAN = 480;
 
-const TRAFFIC_COLORS = [0xff2a6d, 0xff9f1c, 0xa855f7, 0x2dff8a, 0xe2e8f0];
+const TRAFFIC_COLORS = [0xff6b5b, 0x4aa8ff, 0x5ee0a0, 0xff8fb8, 0xffffff, 0xff9f1c, 0xa78bfa];
+const CANDY = [0xff6b5b, 0xffd23f, 0x5ee0a0, 0xff8fb8, 0x8ad8ff, 0xa78bfa, 0xff9f1c];
 
-/** Unlit, tone-map-exempt colour that the bloom pass will pick up. */
-function glow(color, intensity = 1.6, opts = {}) {
-  const c = new THREE.Color(color).multiplyScalar(intensity);
-  return new THREE.MeshBasicMaterial({ color: c, toneMapped: false, ...opts });
+/** Flat, unlit colour for lights, stripes and other solid details. */
+function glow(color, _intensity = 1, opts = {}) {
+  return new THREE.MeshBasicMaterial({ color, toneMapped: false, ...opts });
 }
 
 function makeCanvasTexture(w, h, draw) {
@@ -45,8 +45,8 @@ export class OverdriveGame extends BaseGame {
     super({
       id: 'overdrive',
       name: 'Overdrive',
-      subtitle: 'Infinite Synthwave Highway',
-      description: 'Dodge traffic and barricades on an endless cyberpunk highway. How long can you survive at terminal velocity?',
+      subtitle: 'Endless Toy-Track Racer',
+      description: 'Dodge traffic and barricades on an endless, sunny toy-track highway. Squeeze past cars for near-miss bonuses and see how long you can last at top speed.',
       icon: '🏎️',
       badge: 'Infinite Runner',
       genre: 'Racing',
@@ -93,26 +93,31 @@ export class OverdriveGame extends BaseGame {
   async init(engine) {
     await super.init(engine);
 
+    // Bright, true-to-colour rendering for the toy world (the lobby's setting comes back in destroy())
+    const r = this.engine.renderer;
+    this._prevTone = { mapping: r.toneMapping, exposure: r.toneMappingExposure };
+    r.toneMapping = THREE.NeutralToneMapping;
+    r.toneMappingExposure = 1;
+
     this.ownScene = new THREE.Scene();
     this.ownScene.background = this.makeSkyTexture();
-    this.ownScene.fog = new THREE.Fog(0x1a0838, 90, 400);
+    this.ownScene.fog = new THREE.Fog(0xcdeeff, 110, 420);
 
     this.ownCamera = new THREE.PerspectiveCamera(62, 1, 0.1, 1200);
     this.ownCamera.position.set(0, 5.4, 11);
 
-    const hemi = new THREE.HemisphereLight(0xb06bff, 0x120628, 0.9);
-    this.ownScene.add(hemi);
-    const key = new THREE.DirectionalLight(0x7fe9ff, 1.1);
+    this.ownScene.add(new THREE.HemisphereLight(0xffffff, 0x8fd6a0, 1.1));
+    const key = new THREE.DirectionalLight(0xfff4dc, 2.2);
     key.position.set(-14, 26, 16);
     this.ownScene.add(key);
-    const rim = new THREE.DirectionalLight(0xff3df2, 0.9);
-    rim.position.set(16, 12, -20);
-    this.ownScene.add(rim);
+    const fill = new THREE.DirectionalLight(0xbfe0ff, 0.6);
+    fill.position.set(16, 12, -20);
+    this.ownScene.add(fill);
 
     this.buildSky();
     this.buildRoad();
     this.buildScenery();
-    this.car = this.buildCar({ body: 0x00d9ff, accent: 0xff2bd6, player: true });
+    this.car = this.buildCar({ body: 0xffd23f, accent: 0xff6b5b, player: true });
     this.car.position.set(0, 0, 0);
     this.ownScene.add(this.car);
 
@@ -140,6 +145,10 @@ export class OverdriveGame extends BaseGame {
     this.ownScene = null;
     // Hand the shared renderer back in the state the lobby expects.
     this.engine?.renderer.setRenderTarget(null);
+    if (this._prevTone && this.engine) {
+      this.engine.renderer.toneMapping = this._prevTone.mapping;
+      this.engine.renderer.toneMappingExposure = this._prevTone.exposure;
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -149,8 +158,6 @@ export class OverdriveGame extends BaseGame {
     const r = this.engine.renderer;
     this.composer = new EffectComposer(r);
     this.composer.addPass(new RenderPass(this.ownScene, this.ownCamera));
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.6, 0.5, 0.9);
-    this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
   }
 
@@ -181,11 +188,10 @@ export class OverdriveGame extends BaseGame {
   makeSkyTexture() {
     return makeCanvasTexture(8, 512, (ctx, w, h) => {
       const g = ctx.createLinearGradient(0, 0, 0, h);
-      g.addColorStop(0, '#05010f');
-      g.addColorStop(0.45, '#1a0638');
-      g.addColorStop(0.72, '#5a0f6e');
-      g.addColorStop(0.88, '#c2185b');
-      g.addColorStop(1, '#ff6a3d');
+      g.addColorStop(0, '#2b8de8');
+      g.addColorStop(0.5, '#6cc4ff');
+      g.addColorStop(0.85, '#c9ecff');
+      g.addColorStop(1, '#f2fbff');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, w, h);
     });
@@ -194,162 +200,188 @@ export class OverdriveGame extends BaseGame {
   buildSky() {
     const scene = this.ownScene;
 
-    // Striped retro sun
+    // A flat yellow sun with a soft halo
     const sunTex = makeCanvasTexture(512, 512, (ctx, w, h) => {
-      const g = ctx.createLinearGradient(0, 0, 0, h);
-      g.addColorStop(0, '#fff176');
-      g.addColorStop(0.5, '#ff4d8d');
-      g.addColorStop(1, '#a100ff');
-      ctx.fillStyle = g;
+      const halo = ctx.createRadialGradient(w / 2, h / 2, w * 0.18, w / 2, h / 2, w / 2);
+      halo.addColorStop(0, 'rgba(255, 240, 150, 0.95)');
+      halo.addColorStop(1, 'rgba(255, 240, 150, 0)');
+      ctx.fillStyle = halo;
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#ffd23f';
       ctx.beginPath();
-      ctx.arc(w / 2, h / 2, w / 2 - 2, 0, Math.PI * 2);
+      ctx.arc(w / 2, h / 2, w * 0.17, 0, Math.PI * 2);
       ctx.fill();
-      ctx.globalCompositeOperation = 'destination-out';
-      for (let i = 0; i < 9; i++) {
-        const y = h * 0.45 + i * h * 0.062;
-        ctx.fillRect(0, y, w, 3 + i * 2.2);
-      }
     });
     const sun = new THREE.Mesh(
-      new THREE.CircleGeometry(70, 64),
-      new THREE.MeshBasicMaterial({ map: sunTex, transparent: true, fog: false, toneMapped: false })
+      new THREE.PlaneGeometry(220, 220),
+      new THREE.MeshBasicMaterial({ map: sunTex, transparent: true, fog: false, toneMapped: false, depthWrite: false })
     );
-    sun.position.set(0, 52, -430);
+    sun.position.set(70, 80, -430);
     scene.add(sun);
 
-    // Mountain ridge silhouettes
-    const ridgeMat = new THREE.MeshBasicMaterial({ color: 0x0c0420, fog: false });
-    const edgeMat = new THREE.LineBasicMaterial({ color: new THREE.Color(0xff2bd6).multiplyScalar(1.4), fog: false, toneMapped: false });
-    for (let i = -7; i <= 7; i++) {
-      const h = 28 + Math.abs(Math.sin(i * 12.9898) * 43758.5453 % 1) * 42;
-      const w = 46 + (i % 3) * 8;
-      const geo = new THREE.ConeGeometry(w, h, 4);
-      const m = new THREE.Mesh(geo, ridgeMat);
-      m.position.set(i * 52, h / 2 - 2, -400 - Math.abs(i % 2) * 18);
-      m.rotation.y = Math.PI / 4;
-      scene.add(m);
-      const lines = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat);
-      lines.position.copy(m.position);
-      lines.rotation.copy(m.rotation);
-      scene.add(lines);
+    // Puffy clouds that drift sideways
+    const cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false });
+    const puff = new THREE.SphereGeometry(1, 20, 14);
+    this.clouds = [];
+    for (let i = 0; i < 9; i++) {
+      const c = new THREE.Group();
+      const s = 14 + Math.random() * 14;
+      [[0, 0, 1], [1.1, -0.15, 0.8], [-1.1, -0.2, 0.75], [0.4, 0.55, 0.7]].forEach(([x, y, k]) => {
+        const m = new THREE.Mesh(puff, cloudMat);
+        m.scale.setScalar(s * k);
+        m.position.set(x * s, y * s, 0);
+        c.add(m);
+      });
+      c.scale.y = 0.7;
+      c.position.set(-440 + i * 110 + Math.random() * 40, 70 + Math.random() * 80, -360 - Math.random() * 60);
+      scene.add(c);
+      this.clouds.push(c);
     }
 
-    // Stars
-    const n = 320;
-    const pos = new Float32Array(n * 3);
-    for (let i = 0; i < n; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * 900;
-      pos[i * 3 + 1] = 60 + Math.random() * 220;
-      pos[i * 3 + 2] = -300 - Math.random() * 120;
+    // Rolling hills along the horizon
+    const hillColors = [0x6fd08c, 0x58c47a, 0x8be0a4, 0x4fb8a0];
+    const hillGeo = new THREE.SphereGeometry(1, 32, 16);
+    for (let i = -8; i <= 8; i++) {
+      const r = 60 + Math.abs(Math.sin(i * 12.9898) * 43758.5453 % 1) * 40;
+      const hill = new THREE.Mesh(hillGeo, new THREE.MeshLambertMaterial({ color: hillColors[Math.abs(i) % hillColors.length] }));
+      hill.scale.set(r, r * 0.5, r * 0.8);
+      hill.position.set(i * 66, -6, -380 - Math.abs(i % 2) * 22);
+      scene.add(hill);
     }
-    const sg = new THREE.BufferGeometry();
-    sg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ size: 1.6, color: 0xffffff, fog: false, sizeAttenuation: false })));
   }
 
   buildRoad() {
     const scene = this.ownScene;
 
-    // Asphalt with lane dashes + solid edge lines. One tile = DASH_PERIOD units.
+    // Tarmac with lane dashes and solid white edge lines. One tile = DASH_PERIOD units.
     const roadTex = makeCanvasTexture(512, 512, (ctx, w, h) => {
-      ctx.fillStyle = '#0b0b18';
+      ctx.fillStyle = '#323a63';
       ctx.fillRect(0, 0, w, h);
-      // subtle asphalt noise
       for (let i = 0; i < 2500; i++) {
-        ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.035})`;
+        ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.05})`;
         ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
       }
       const laneW = w / 5;
-      ctx.fillStyle = '#e8f9ff';
+      ctx.fillStyle = '#ffffff';
       for (let i = 1; i < 5; i++) {
-        ctx.fillRect(i * laneW - 3, h * 0.08, 6, h * 0.4);
+        ctx.fillRect(i * laneW - 4, h * 0.08, 8, h * 0.4);
       }
-      ctx.fillStyle = '#00e5ff';
-      ctx.fillRect(2, 0, 7, h);
-      ctx.fillRect(w - 9, 0, 7, h);
+      ctx.fillRect(4, 0, 9, h);
+      ctx.fillRect(w - 13, 0, 9, h);
     });
     roadTex.wrapS = roadTex.wrapT = THREE.RepeatWrapping;
     roadTex.repeat.set(1, ROAD_LENGTH / DASH_PERIOD);
     const road = new THREE.Mesh(
       new THREE.PlaneGeometry(ROAD_WIDTH, ROAD_LENGTH),
-      new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.55, metalness: 0.35 })
+      new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.9, metalness: 0 })
     );
     road.rotation.x = -Math.PI / 2;
     road.position.set(0, 0, -ROAD_LENGTH / 2 + 40);
     scene.add(road);
     this.scrollers.push({ tex: roadTex, period: DASH_PERIOD });
 
-    // Synthwave grid either side of the road
-    const gridTex = makeCanvasTexture(256, 256, (ctx, w, h) => {
-      ctx.fillStyle = '#07021a';
-      ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = '#ff2bd6';
-      ctx.lineWidth = 4;
-      ctx.strokeRect(0, 0, w, h);
+    // Striped grass either side of the road
+    const grassTex = makeCanvasTexture(64, 128, (ctx, w, h) => {
+      ctx.fillStyle = '#86dc6e';
+      ctx.fillRect(0, 0, w, h / 2);
+      ctx.fillStyle = '#74cf5f';
+      ctx.fillRect(0, h / 2, w, h / 2);
     });
-    gridTex.wrapS = gridTex.wrapT = THREE.RepeatWrapping;
+    grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping;
     const gridSize = 700;
-    gridTex.repeat.set(gridSize / GRID_PERIOD, gridSize / GRID_PERIOD);
+    grassTex.repeat.set(1, gridSize / GRID_PERIOD);
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(gridSize, gridSize),
-      new THREE.MeshBasicMaterial({ map: gridTex, toneMapped: false })
+      new THREE.MeshBasicMaterial({ map: grassTex })
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.set(0, -0.08, -gridSize / 2 + 80);
     scene.add(ground);
-    this.scrollers.push({ tex: gridTex, period: GRID_PERIOD });
+    this.scrollers.push({ tex: grassTex, period: GRID_PERIOD });
 
-    // Glowing curbs + low guard rails
+    // Red and white rumble strips + low white barriers
+    const RUMBLE = 8;
+    const rumbleTex = makeCanvasTexture(32, 64, (ctx, w, h) => {
+      ctx.fillStyle = '#ff4d5e';
+      ctx.fillRect(0, 0, w, h / 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, h / 2, w, h / 2);
+    });
+    rumbleTex.wrapS = rumbleTex.wrapT = THREE.RepeatWrapping;
+    rumbleTex.repeat.set(1, ROAD_LENGTH / RUMBLE);
+    this.scrollers.push({ tex: rumbleTex, period: RUMBLE });
     const edgeZ = -ROAD_LENGTH / 2 + 40;
-    [[-1, 0x00e5ff], [1, 0xff2bd6]].forEach(([side, color]) => {
-      const curb = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.3, ROAD_LENGTH), glow(color, 0.95));
-      curb.position.set(side * (ROAD_WIDTH / 2 + 0.25), 0.18, edgeZ);
+    [-1, 1].forEach(side => {
+      const curb = new THREE.Mesh(
+        new THREE.BoxGeometry(0.9, 0.3, ROAD_LENGTH),
+        new THREE.MeshStandardMaterial({ map: rumbleTex, roughness: 0.7 })
+      );
+      curb.position.set(side * (ROAD_WIDTH / 2 + 0.45), 0.15, edgeZ);
       scene.add(curb);
 
       const rail = new THREE.Mesh(
-        new THREE.BoxGeometry(0.4, 1.0, ROAD_LENGTH),
-        new THREE.MeshStandardMaterial({ color: 0x14102b, roughness: 0.6, metalness: 0.5 })
+        new THREE.BoxGeometry(0.4, 0.9, ROAD_LENGTH),
+        new THREE.MeshStandardMaterial({ color: 0xf3f7ff, roughness: 0.5 })
       );
-      rail.position.set(side * (ROAD_WIDTH / 2 + 1.1), 0.5, edgeZ);
+      rail.position.set(side * (ROAD_WIDTH / 2 + 1.5), 0.45, edgeZ);
       scene.add(rail);
     });
   }
 
-  /** Recycled pylons, towers and lamp posts that streak past the player. */
+  /** Recycled toy trees, candy houses and flag posts that stream past the player. */
   buildScenery() {
     const scene = this.ownScene;
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0b0720, roughness: 0.7, metalness: 0.4 });
-    const palette = [0x00e5ff, 0xff2bd6, 0x8a5cff];
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x9b6b43, roughness: 0.8 });
+    const poleMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+    const leafColors = [0x4ecb71, 0x7ddc6a, 0xffd23f, 0xff8fb8];
     const count = 12;
     const step = SCENERY_SPAN / count;
+    const trunkGeo = new THREE.CylinderGeometry(0.5, 0.7, 4, 10);
+    const leafGeo = new THREE.SphereGeometry(1, 20, 14);
+    const poleGeo = new THREE.CylinderGeometry(0.12, 0.16, 8, 8);
+    const flagGeo = new THREE.BoxGeometry(2, 1.1, 0.08);
 
     for (let side = -1; side <= 1; side += 2) {
       for (let i = 0; i < count; i++) {
         const g = new THREE.Group();
-        const color = palette[(i + (side > 0 ? 1 : 0)) % palette.length];
-        const edgeMat = new THREE.LineBasicMaterial({ color: new THREE.Color(color).multiplyScalar(1.6), toneMapped: false });
+        const color = CANDY[(i + (side > 0 ? 3 : 0)) % CANDY.length];
 
-        // Tower
-        const h = 14 + Math.random() * 34;
-        const w = 6 + Math.random() * 6;
-        const geo = new THREE.BoxGeometry(w, h, w);
-        const tower = new THREE.Mesh(geo, bodyMat);
-        tower.position.set(side * (26 + w / 2 + Math.random() * 22), h / 2, 0);
-        g.add(tower);
-        const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat);
-        edges.position.copy(tower.position);
-        g.add(edges);
+        if (i % 3 === 1) {
+          // A candy house: a rounded block with a pointy roof and a door
+          const w = 7 + Math.random() * 5;
+          const h = 8 + Math.random() * 8;
+          const x = side * (28 + w / 2 + Math.random() * 18);
+          const wall = new THREE.Mesh(new RoundedBoxGeometry(w, h, w, 3, 0.7), new THREE.MeshStandardMaterial({ color, roughness: 0.45 }));
+          wall.position.set(x, h / 2, 0);
+          g.add(wall);
+          const roof = new THREE.Mesh(new THREE.ConeGeometry(w * 0.78, w * 0.7, 4), new THREE.MeshStandardMaterial({ color: 0xff6b5b, roughness: 0.5 }));
+          roof.position.set(x, h + w * 0.3, 0);
+          roof.rotation.y = Math.PI / 4;
+          g.add(roof);
+          const door = new THREE.Mesh(new THREE.BoxGeometry(w * 0.25, h * 0.35, 0.2), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+          door.position.set(x - side * 0, h * 0.18, w / 2 + 0.05);
+          g.add(door);
+        } else {
+          // A lollipop tree
+          const k = 0.8 + Math.random() * 0.8;
+          const x = side * (26 + Math.random() * 30);
+          const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+          trunk.scale.set(k, k, k);
+          trunk.position.set(x, 2 * k, 0);
+          g.add(trunk);
+          const leaves = new THREE.Mesh(leafGeo, new THREE.MeshStandardMaterial({ color: leafColors[(i + (side > 0 ? 1 : 0)) % leafColors.length], roughness: 0.55 }));
+          leaves.scale.setScalar(3.6 * k);
+          leaves.position.set(x, 4 * k + 3.2 * k, 0);
+          g.add(leaves);
+        }
 
-        // Lamp post leaning over the road
-        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 8, 6), bodyMat);
-        pole.position.set(side * (ROAD_WIDTH / 2 + 1.6), 4, 0);
+        // A flag post beside the road
+        const pole = new THREE.Mesh(poleGeo, poleMat);
+        pole.position.set(side * (ROAD_WIDTH / 2 + 2.6), 4, 0);
         g.add(pole);
-        const arm = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.14, 0.14), bodyMat);
-        arm.position.set(side * (ROAD_WIDTH / 2 - 0.1), 8, 0);
-        g.add(arm);
-        const lamp = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.12, 0.5), glow(color, 2.2));
-        lamp.position.set(side * (ROAD_WIDTH / 2 - 1.6), 7.9, 0);
-        g.add(lamp);
+        const flag = new THREE.Mesh(flagGeo, new THREE.MeshStandardMaterial({ color, roughness: 0.6 }));
+        flag.position.set(side * (ROAD_WIDTH / 2 + 2.6) - side * 1.0, 7.3, 0);
+        g.add(flag);
 
         g.position.z = DESPAWN_Z - i * step - (side > 0 ? step / 2 : 0);
         scene.add(g);
@@ -363,10 +395,10 @@ export class OverdriveGame extends BaseGame {
   // -------------------------------------------------------------------------
   buildCar({ body, accent, player }) {
     const car = new THREE.Group();
-    const bodyMat = new THREE.MeshStandardMaterial({ color: body, emissive: body, emissiveIntensity: 0.28, metalness: 0.55, roughness: 0.3 });
-    const darkMat = new THREE.MeshStandardMaterial({ color: 0x07070f, metalness: 0.9, roughness: 0.15 });
+    const bodyMat = new THREE.MeshPhysicalMaterial({ color: body, metalness: 0, roughness: 0.35, clearcoat: 0.6, clearcoatRoughness: 0.2 });
+    const glassMat = new THREE.MeshStandardMaterial({ color: 0x24305e, metalness: 0.1, roughness: 0.2 });
 
-    // Side-profile hull (shape X = length, nose at +X), extruded across the width.
+    // Side-profile hull (shape X = length, nose at +X), extruded across the width, with soft bevelled edges.
     const s = new THREE.Shape();
     s.moveTo(-2.3, 0.3);
     s.lineTo(-2.3, 0.85);
@@ -377,82 +409,76 @@ export class OverdriveGame extends BaseGame {
     s.lineTo(2.3, 0.78);
     s.lineTo(2.3, 0.3);
     s.closePath();
-    const hullGeo = new THREE.ExtrudeGeometry(s, { depth: 2.1, bevelEnabled: false });
-    hullGeo.translate(0, 0, -1.05);
+    const hullGeo = new THREE.ExtrudeGeometry(s, { depth: 1.9, bevelEnabled: true, bevelSize: 0.12, bevelThickness: 0.12, bevelSegments: 3 });
+    hullGeo.translate(0, 0, -0.95);
     hullGeo.rotateY(Math.PI / 2); // nose (+X) -> -Z
     const hull = new THREE.Mesh(hullGeo, bodyMat);
     hull.position.y = 0.1;
     car.add(hull);
 
     // Window band, slightly proud of the hull sides
-    const glass = new THREE.Mesh(new THREE.BoxGeometry(2.14, 0.28, 1.6), darkMat);
+    const glass = new THREE.Mesh(new RoundedBoxGeometry(2.14, 0.3, 1.6, 2, 0.08), glassMat);
     glass.position.set(0, 1.2, 0.3);
     car.add(glass);
 
-    // Side accent stripes
-    const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.14, 0.07, 3.9), glow(accent, 1.8));
+    // Racing stripe
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.1, 3.9), new THREE.MeshStandardMaterial({ color: accent, roughness: 0.5 }));
     stripe.position.set(0, 0.62, 0);
     car.add(stripe);
 
-    // Wheels
-    const wheelGeo = new THREE.CylinderGeometry(0.46, 0.46, 0.4, 20);
+    // Chunky wheels with white hubs
+    const wheelGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.44, 24);
     wheelGeo.rotateZ(Math.PI / 2);
-    const rimGeo = new THREE.CylinderGeometry(0.26, 0.26, 0.42, 12);
+    const rimGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.47, 14);
     rimGeo.rotateZ(Math.PI / 2);
-    const tireMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0f, roughness: 0.9 });
-    const rimMat = glow(accent, 1.3);
+    const tireMat = new THREE.MeshStandardMaterial({ color: 0x1b2150, roughness: 0.8 });
+    const rimMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
     [[-1.1, -1.45], [1.1, -1.45], [-1.1, 1.45], [1.1, 1.45]].forEach(([x, z]) => {
       const w = new THREE.Group();
       w.add(new THREE.Mesh(wheelGeo, tireMat), new THREE.Mesh(rimGeo, rimMat));
-      w.position.set(x, 0.46, z);
+      w.position.set(x, 0.5, z);
       car.add(w);
       this.carWheels.push(w);
     });
 
-    // Rear lights + roof-to-tail neon, front headlamps
-    const tail = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.14, 0.08), glow(0xff1744, 2.4));
-    tail.position.set(0, 0.92, 2.4);
+    // Tail light bar and headlamps
+    const tail = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.14, 0.08), glow(0xff4d5e));
+    tail.position.set(0, 0.92, 2.42);
     car.add(tail);
     [-0.75, 0.75].forEach(x => {
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.16, 0.08), glow(0xfff7d6, 2.6));
-      head.position.set(x, 0.72, -2.4);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.16, 0.08), glow(0xfff3b0));
+      head.position.set(x, 0.72, -2.42);
       car.add(head);
     });
 
-    // Underglow
-    const glowTex = makeCanvasTexture(64, 64, (ctx, w, h) => {
+    // Soft blob shadow on the road
+    const shadowTex = makeCanvasTexture(64, 64, (ctx, w, h) => {
       const g = ctx.createRadialGradient(w / 2, h / 2, 2, w / 2, h / 2, w / 2);
-      g.addColorStop(0, 'rgba(255,255,255,0.9)');
-      g.addColorStop(1, 'rgba(255,255,255,0)');
+      g.addColorStop(0, 'rgba(10, 14, 40, 0.5)');
+      g.addColorStop(1, 'rgba(10, 14, 40, 0)');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, w, h);
     });
-    const under = new THREE.Mesh(
-      new THREE.PlaneGeometry(4.2, 7.4),
-      new THREE.MeshBasicMaterial({
-        map: glowTex, color: accent, transparent: true, opacity: 0.55,
-        blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false
-      })
+    const shadow = new THREE.Mesh(
+      new THREE.PlaneGeometry(4.2, 7.2),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, toneMapped: false })
     );
-    under.rotation.x = -Math.PI / 2;
-    under.position.y = 0.06;
-    car.add(under);
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = 0.06;
+    car.add(shadow);
 
     if (player) {
       // Spoiler
       [-0.8, 0.8].forEach(x => {
-        const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.4, 0.12), darkMat);
+        const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.4, 0.12), glassMat);
         post.position.set(x, 1.15, 2.0);
         car.add(post);
       });
-      const wing = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.08, 0.6), bodyMat);
+      const wing = new THREE.Mesh(new RoundedBoxGeometry(2.3, 0.1, 0.6, 2, 0.04), new THREE.MeshStandardMaterial({ color: accent, roughness: 0.4 }));
       wing.position.set(0, 1.38, 2.05);
       car.add(wing);
-      const wingGlow = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.04, 0.05), glow(accent, 2));
-      wingGlow.position.set(0, 1.38, 2.37);
-      car.add(wingGlow);
       // Hood stripe
-      const hood = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.02, 1.7), glow(accent, 1.8));
+      const hood = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.02, 1.7), glow(0xffffff));
       hood.position.set(0, 1.0, -1.35);
       hood.rotation.x = 0.1;
       car.add(hood);
@@ -463,9 +489,9 @@ export class OverdriveGame extends BaseGame {
   buildBarricade() {
     const g = new THREE.Group();
     const stripeTex = makeCanvasTexture(256, 64, (ctx, w, h) => {
-      ctx.fillStyle = '#ffb300';
+      ctx.fillStyle = '#ff9f1c';
       ctx.fillRect(0, 0, w, h);
-      ctx.fillStyle = '#12091f';
+      ctx.fillStyle = '#ffffff';
       for (let x = -h; x < w + h; x += 64) {
         ctx.beginPath();
         ctx.moveTo(x, h);
@@ -475,21 +501,18 @@ export class OverdriveGame extends BaseGame {
         ctx.fill();
       }
     });
-    const face = new THREE.MeshStandardMaterial({ map: stripeTex, roughness: 0.6 });
-    const block = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.9, 0.9), face);
+    const face = new THREE.MeshStandardMaterial({ map: stripeTex, roughness: 0.5 });
+    const block = new THREE.Mesh(new RoundedBoxGeometry(4.2, 0.9, 0.9, 3, 0.2), face);
     block.position.y = 0.7;
     g.add(block);
     [-1.6, 1.6].forEach(x => {
-      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.5, 0.7), new THREE.MeshStandardMaterial({ color: 0x1a1a24 }));
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.5, 0.7), new THREE.MeshStandardMaterial({ color: 0x1b2150 }));
       leg.position.set(x, 0.25, 0);
       g.add(leg);
-      const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 8), glow(0xff1744, 2.6));
-      beacon.position.set(x, 1.35, 0);
+      const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 10), glow(0xff4d5e));
+      beacon.position.set(x, 1.38, 0);
       g.add(beacon);
     });
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.06, 0.06), glow(0xff1744, 2));
-    bar.position.set(0, 1.18, 0.46);
-    g.add(bar);
     return g;
   }
 
@@ -509,7 +532,7 @@ export class OverdriveGame extends BaseGame {
         ? this.buildBarricade()
         : this.buildCar({
             body: TRAFFIC_COLORS[Math.floor(Math.random() * TRAFFIC_COLORS.length)],
-            accent: 0x1b1033,
+            accent: 0x1b2150,
             player: false
           });
       mesh.position.set(LANES[laneIdx], 0, SPAWN_Z);
@@ -568,10 +591,10 @@ export class OverdriveGame extends BaseGame {
       localStorage.setItem('overdrive_highscore', String(finalScore));
     }
 
-    const colors = [0x00d9ff, 0xff2bd6, 0xffb300, 0xffffff];
+    const colors = [0xffd23f, 0xff6b5b, 0xffffff, 0x5ee0a0, 0x4aa8ff];
     const geo = new THREE.BoxGeometry(0.35, 0.35, 0.35);
     for (let i = 0; i < 46; i++) {
-      const m = new THREE.Mesh(geo, glow(colors[i % colors.length], 2));
+      const m = new THREE.Mesh(geo, glow(colors[i % colors.length]));
       m.position.set(this.car.position.x, 1, 0);
       this.ownScene.add(m);
       this.particles.push({
@@ -662,6 +685,10 @@ export class OverdriveGame extends BaseGame {
   scrollWorld(speed, dt) {
     const d = speed * dt;
     this.scrollers.forEach(s => (s.tex.offset.y += d / s.period));
+    this.clouds?.forEach(c => {
+      c.position.x += dt * 3;
+      if (c.position.x > 480) c.position.x = -480;
+    });
     this.scenery.forEach(g => {
       g.position.z += d;
       if (g.position.z > DESPAWN_Z + 10) g.position.z -= SCENERY_SPAN;
@@ -685,7 +712,6 @@ export class OverdriveGame extends BaseGame {
       cam.fov += (fov - cam.fov) * Math.min(1, dt * 4);
       cam.updateProjectionMatrix();
     }
-    this.bloom.strength = 0.6 + speedT * 0.3;
   }
 
   updateParticles(dt) {
@@ -727,7 +753,7 @@ export class OverdriveGame extends BaseGame {
         </div>
         <div class="nd-gameover" data-nd="over">
           <div class="nd-over-card">
-            <h1>SYSTEM CRASH</h1>
+            <h1>CRASH!</h1>
             <div class="nd-over-score" data-nd="final">0</div>
             <p class="nd-over-best" data-nd="newbest"></p>
             <p class="nd-over-stat" data-nd="stats"></p>
@@ -762,7 +788,7 @@ export class OverdriveGame extends BaseGame {
     h.over.classList.toggle('show', over);
     if (over) {
       h.final.textContent = Math.floor(this.score).toLocaleString();
-      h.newbest.textContent = this.isNewBest ? '★ NEW PERSONAL BEST ★' : `BEST ${this.highScore.toLocaleString()}`;
+      h.newbest.textContent = this.isNewBest ? '★ NEW BEST ★' : `BEST ${this.highScore.toLocaleString()}`;
       h.newbest.classList.toggle('record', !!this.isNewBest);
       h.stats.textContent = `${this.nearMisses} near miss${this.nearMisses === 1 ? '' : 'es'}`;
     }
