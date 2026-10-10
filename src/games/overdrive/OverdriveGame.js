@@ -32,6 +32,13 @@ const AI_GRID = [[-5, 8], [5, 8], [-10, 14], [0, 14], [10, 14], [-5, 20], [5, 20
 const AI_SPEEDS = [138, 142, 146, 150, 154, 158, 162];
 const RIDER_COLORS = [0xff6b5b, 0x4aa8ff, 0x5ee0a0, 0xff8fb8, 0xffffff, 0xff9f1c, 0xa78bfa];
 
+// Road bends. The whole world is bent sideways with distance from the camera (see bendObject),
+// and each turn also pushes the bike toward the outside edge, so you have to steer into it.
+const CURVE_MAX = 5.5e-4; // sideways shift per squared distance at the sharpest turn
+const CURVE_BLEND = 150; // distance over which a turn eases in and out
+const CURVE_LOOKAHEAD = 70; // the road starts bending a little before you reach the turn
+const CURVE_DRIFT = 7; // sideways units/s pushed at full speed in the sharpest turn
+
 const TRAFFIC_COLORS = [0xff6b5b, 0x4aa8ff, 0x5ee0a0, 0xff8fb8, 0xffffff, 0xff9f1c, 0xa78bfa];
 const CANDY = [0xff6b5b, 0xffd23f, 0x5ee0a0, 0xff8fb8, 0x8ad8ff, 0xa78bfa, 0xff9f1c];
 
@@ -148,6 +155,14 @@ export class OverdriveGame extends BaseGame {
     r.toneMappingExposure = 1;
 
     this.ownScene = new THREE.Scene();
+    // Everything added to this scene gets the road-bend shader
+    this.curve = { value: 0 };
+    const scene = this.ownScene;
+    const baseAdd = scene.add.bind(scene);
+    scene.add = (...objs) => {
+      objs.forEach(o => this.bendObject(o));
+      return baseAdd(...objs);
+    };
     this.ownScene.background = this.makeSkyTexture();
     this.ownScene.fog = new THREE.Fog(0xcdeeff, 110, 420);
 
@@ -292,13 +307,13 @@ export class OverdriveGame extends BaseGame {
     });
     const sun = new THREE.Mesh(
       new THREE.PlaneGeometry(220, 220),
-      new THREE.MeshBasicMaterial({ map: sunTex, transparent: true, fog: false, toneMapped: false, depthWrite: false })
+      this.fixedMat(new THREE.MeshBasicMaterial({ map: sunTex, transparent: true, fog: false, toneMapped: false, depthWrite: false }))
     );
     sun.position.set(70, 80, -430);
     scene.add(sun);
 
     // Puffy clouds that drift sideways
-    const cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false });
+    const cloudMat = this.fixedMat(new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false }));
     const puff = new THREE.SphereGeometry(1, 20, 14);
     this.clouds = [];
     for (let i = 0; i < 9; i++) {
@@ -350,7 +365,7 @@ export class OverdriveGame extends BaseGame {
     roadTex.wrapS = roadTex.wrapT = THREE.RepeatWrapping;
     roadTex.repeat.set(1, ROAD_LENGTH / DASH_PERIOD);
     const road = new THREE.Mesh(
-      new THREE.PlaneGeometry(ROAD_WIDTH, ROAD_LENGTH),
+      new THREE.PlaneGeometry(ROAD_WIDTH, ROAD_LENGTH, 1, 260), // finely sliced along its length so it can bend
       new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.9, metalness: 0 })
     );
     road.rotation.x = -Math.PI / 2;
@@ -369,7 +384,7 @@ export class OverdriveGame extends BaseGame {
     const gridSize = 700;
     grassTex.repeat.set(1, gridSize / GRID_PERIOD);
     const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(gridSize, gridSize),
+      new THREE.PlaneGeometry(gridSize, gridSize, 1, 350),
       new THREE.MeshBasicMaterial({ map: grassTex })
     );
     ground.rotation.x = -Math.PI / 2;
@@ -391,14 +406,14 @@ export class OverdriveGame extends BaseGame {
     const edgeZ = -ROAD_LENGTH / 2 + 40;
     [-1, 1].forEach(side => {
       const curb = new THREE.Mesh(
-        new THREE.BoxGeometry(0.9, 0.3, ROAD_LENGTH),
+        new THREE.BoxGeometry(0.9, 0.3, ROAD_LENGTH, 1, 1, 260),
         new THREE.MeshStandardMaterial({ map: rumbleTex, roughness: 0.7 })
       );
       curb.position.set(side * (ROAD_WIDTH / 2 + 0.45), 0.15, edgeZ);
       scene.add(curb);
 
       const rail = new THREE.Mesh(
-        new THREE.BoxGeometry(0.4, 0.9, ROAD_LENGTH),
+        new THREE.BoxGeometry(0.4, 0.9, ROAD_LENGTH, 1, 1, 260),
         new THREE.MeshStandardMaterial({ color: 0xf3f7ff, roughness: 0.5 })
       );
       rail.position.set(side * (ROAD_WIDTH / 2 + 1.5), 0.45, edgeZ);
@@ -627,8 +642,71 @@ export class OverdriveGame extends BaseGame {
     });
   }
 
+  /** Marks a material as part of the sky: it should not swing with the road. */
+  fixedMat(m) {
+    m.userData.noBend = true;
+    return m;
+  }
+
+  /** Patches an object's materials so the world bends sideways with distance (a curved road). */
+  bendObject(obj) {
+    obj.traverse(o => {
+      o.frustumCulled = false; // bent geometry can land inside the view from outside it
+      if (!o.material) return;
+      (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
+        if (m.userData.bent || m.userData.noBend) return;
+        m.userData.bent = true;
+        m.onBeforeCompile = shader => {
+          shader.uniforms.uCurve = this.curve;
+          shader.vertexShader =
+            'uniform float uCurve;\n' +
+            shader.vertexShader.replace(
+              '#include <project_vertex>',
+              '#include <project_vertex>\n  mvPosition.x += uCurve * mvPosition.z * mvPosition.z;\n  gl_Position = projectionMatrix * mvPosition;'
+            );
+        };
+        m.customProgramCacheKey = () => 'od-bend';
+        m.needsUpdate = true;
+      });
+    });
+  }
+
+  resetTrack() {
+    this.trackS = 0;
+    this.curve.value = 0;
+    this.curveSegs = [{ start: 0, end: 520, v: 0 }]; // a straight to start with
+  }
+
+  /** The turn (-1..1 of the sharpest) at distance s along the track, eased between segments. */
+  curveAt(s) {
+    const segs = this.curveSegs;
+    while (segs[segs.length - 1].end < s + 2500) {
+      const last = segs[segs.length - 1];
+      const straight = last.v !== 0;
+      const len = straight ? 300 + Math.random() * 350 : 520 + Math.random() * 420;
+      const v = straight ? 0 : (Math.random() < 0.5 ? -1 : 1) * (0.4 + Math.random() * 0.6);
+      segs.push({ start: last.end, end: last.end + len, v });
+    }
+    let i = segs.findIndex(g => s < g.end);
+    if (i < 0) i = segs.length - 1;
+    const seg = segs[i];
+    const prev = segs[i - 1];
+    if (!prev) return seg.v;
+    const t = THREE.MathUtils.clamp((s - seg.start) / CURVE_BLEND, 0, 1);
+    return prev.v + (seg.v - prev.v) * (t * t * (3 - 2 * t));
+  }
+
+  /** Advance along the track and ease the bend; returns the current turn (-1..1). */
+  updateTrack(dt, distance) {
+    this.trackS = distance;
+    const target = this.curveAt(distance + CURVE_LOOKAHEAD) * CURVE_MAX;
+    this.curve.value += (target - this.curve.value) * Math.min(1, dt * 3);
+    return this.curve.value / CURVE_MAX;
+  }
+
   resetGame() {
     this.isGameOver = false;
+    this.trackDist = 0;
     this.speed = START_SPEED;
     this.score = 0;
     this.nearMisses = 0;
@@ -645,6 +723,7 @@ export class OverdriveGame extends BaseGame {
     this.particles.forEach(p => this.disposeObject(p.mesh));
     this.particles = [];
 
+    this.resetTrack();
     this.setHudState(false);
     this.updateHUD();
     this.startAudio();
@@ -723,6 +802,9 @@ export class OverdriveGame extends BaseGame {
     this.speed = Math.min(MAX_SPEED, this.speed + dt * 1.8);
     this.audio?.setEngine(THREE.MathUtils.clamp((this.speed - START_SPEED) / (MAX_SPEED - START_SPEED), 0, 1), 0);
     this.score += this.speed * dt * 0.1;
+    this.trackDist = (this.trackDist || 0) + this.speed * dt;
+    const turn = this.updateTrack(dt, this.trackDist);
+    this.car.position.x = THREE.MathUtils.clamp(this.car.position.x - turn * CURVE_DRIFT * (this.speed / MAX_SPEED) * dt, -CAR_X_LIMIT, CAR_X_LIMIT);
     this.scrollWorld(this.speed, dt);
 
     // --- Spawning (by distance, so density stays fair as speed rises) -----
@@ -797,6 +879,7 @@ export class OverdriveGame extends BaseGame {
       cam.position.y += (Math.random() - 0.5) * this.shake * 1.0;
     }
     cam.lookAt(this.car.position.x * 0.7, 1.3, -16);
+    cam.rotateZ(-(this.curve.value / CURVE_MAX) * 0.035); // bank into the turn
     const fov = (this.baseFov || 62) + speedT * 12;
     if (Math.abs(cam.fov - fov) > 0.05) {
       cam.fov += (fov - cam.fov) * Math.min(1, dt * 4);
@@ -1076,6 +1159,7 @@ export class OverdriveGame extends BaseGame {
         this.riders.map(r => `<span style="--c:#${r.color.toString(16).padStart(6, '0')}"></span>`).join('') +
         '<span class="me"></span>';
     }
+    this.resetTrack();
     this.setCountdown('');
     this.updateRushHud();
     this.startAudio();
@@ -1247,6 +1331,8 @@ export class OverdriveGame extends BaseGame {
     this.speed += (top - this.speed) * Math.min(1, dt * rate);
     R.progress += this.speed * dt;
     this.score = R.progress;
+    const turn = this.updateTrack(dt, R.progress);
+    this.car.position.x = THREE.MathUtils.clamp(this.car.position.x - turn * CURVE_DRIFT * (this.speed / BOOST_TOP) * dt, -CAR_X_LIMIT, CAR_X_LIMIT);
     this.audio?.setEngine(THREE.MathUtils.clamp(this.speed / BOOST_TOP, 0, 1), R.boosting ? 1 : 0);
 
     // --- Punching -------------------------------------------------------
@@ -1330,6 +1416,7 @@ export class OverdriveGame extends BaseGame {
         r.thinkT = 0.35 + Math.random() * 0.3;
         this.aiThink(r, z);
       }
+      r.x -= (this.curve.value / CURVE_MAX) * CURVE_DRIFT * (r.speed / BOOST_TOP) * dt;
       const step = 14 * dt;
       r.x = THREE.MathUtils.clamp(r.x + THREE.MathUtils.clamp(r.targetX - r.x, -step, step), -CAR_X_LIMIT, CAR_X_LIMIT);
 
