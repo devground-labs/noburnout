@@ -362,7 +362,7 @@ export class AudioManager {
     if (!this.ctx || this._music) return;
     const ctx = this.ctx;
     const out = ctx.createGain();
-    out.gain.value = 0.55;
+    out.gain.value = 0.3; // kept well under the effects and engine
     out.connect(this.masterGain);
     const stepDur = 60 / bpm / 4;
     const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
