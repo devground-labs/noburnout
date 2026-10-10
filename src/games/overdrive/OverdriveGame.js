@@ -22,7 +22,14 @@ const GRID_PERIOD = 20;
 const SCENERY_SPAN = 480;
 
 // Rush Race (the Road Rash-style mode)
-const RACE_LENGTH = 9000;
+// The Rush Race circuit: [length, turn] pairs, run in order. A turn runs from -1 (full left) to 1
+// (full right); 0 is a straight. The road bend you see and the minimap are both drawn from this.
+const TRACK = [
+  [1000, 0], [800, 1], [400, 0], [700, 1], [300, 0], [500, -0.8], [500, 0.8], [300, 0],
+  [900, 1], [500, 0], [800, 1], [300, 0], [600, -0.7], [400, 0.7], [500, 0]
+];
+const RACE_LENGTH = TRACK.reduce((sum, [len]) => sum + len, 0);
+const MAP_TURN = 2; // the minimap draws turns twice as tight as they feel, so the circuit reads clearly
 const RUSH_MODE = 'Rush Race';
 const AI_COUNT = 7;
 const PLAYER_TOP = 154;
@@ -666,16 +673,23 @@ export class OverdriveGame extends BaseGame {
     });
   }
 
-  resetTrack() {
+  /** `fixed` uses the Rush Race circuit; otherwise a straight start, then random turns forever. */
+  resetTrack(fixed = false) {
     this.trackS = 0;
     this.curve.value = 0;
-    this.curveSegs = [{ start: 0, end: 520, v: 0 }]; // a straight to start with
+    this.fixedTrack = fixed;
+    if (fixed) {
+      let at = 0;
+      this.curveSegs = TRACK.map(([len, v]) => ({ start: at, end: (at += len), v }));
+    } else {
+      this.curveSegs = [{ start: 0, end: 520, v: 0 }];
+    }
   }
 
   /** The turn (-1..1 of the sharpest) at distance s along the track, eased between segments. */
   curveAt(s) {
     const segs = this.curveSegs;
-    while (segs[segs.length - 1].end < s + 2500) {
+    while (!this.fixedTrack && segs[segs.length - 1].end < s + 2500) {
       const last = segs[segs.length - 1];
       const straight = last.v !== 0;
       const len = straight ? 300 + Math.random() * 350 : 520 + Math.random() * 420;
@@ -1148,13 +1162,9 @@ export class OverdriveGame extends BaseGame {
       };
     });
 
-    if (this.hud) {
-      this.hud.rover.classList.remove('show');
-      this.hud.dots.innerHTML =
-        this.riders.map(r => `<span style="--c:#${r.color.toString(16).padStart(6, '0')}"></span>`).join('') +
-        '<span class="me"></span>';
-    }
-    this.resetTrack();
+    if (this.hud) this.hud.rover.classList.remove('show');
+    this.resetTrack(true);
+    this.buildMinimap();
     this.setCountdown('');
     this.updateRushHud();
     this.startAudio();
@@ -1505,6 +1515,65 @@ export class OverdriveGame extends BaseGame {
     this.audio?.stopEngine();
   }
 
+  /** Draws the circuit (from the same turn data the road uses) and creates a dot per rider. */
+  buildMinimap() {
+    const map = this.hud?.map;
+    if (!map) return;
+    const STEP = 20;
+    const total = RACE_LENGTH;
+    let x = 0;
+    let y = 0;
+    let heading = 0;
+    const raw = [[0, 0]];
+    for (let d = 0; d < total; d += STEP) {
+      heading += this.curveAt(d) * 2 * CURVE_MAX * MAP_TURN * STEP;
+      x += Math.sin(heading) * STEP;
+      y -= Math.cos(heading) * STEP; // forward is up the map
+      raw.push([x, y]);
+    }
+    // Fit the route inside the map with a margin
+    const xs = raw.map(p => p[0]);
+    const ys = raw.map(p => p[1]);
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const spanX = Math.max(...xs) - minX || 1;
+    const spanY = Math.max(...ys) - minY || 1;
+    // Size the map to the route's own shape so the track fills it
+    const H = 100;
+    const pad = 12;
+    const W = Math.round(Math.min(150, Math.max(60, (H - pad * 2) * (spanX / spanY) + pad * 2)));
+    const k = Math.min((W - pad * 2) / spanX, (H - pad * 2) / spanY);
+    const offX = (W - spanX * k) / 2;
+    const offY = (H - spanY * k) / 2;
+    map.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    map.parentElement.style.setProperty('--ar', (W / H).toFixed(3));
+    this.mapPts = raw.map(([px, py]) => [offX + (px - minX) * k, offY + (py - minY) * k]);
+    this.mapStep = STEP;
+
+    const line = this.mapPts.map(p => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+    const [sx, sy] = this.mapPts[0];
+    const [fx, fy] = this.mapPts[this.mapPts.length - 1];
+    const dot = (c, r) => `<circle r="${r}" fill="${c}" stroke="#0b1230" stroke-width="1.6"/>`;
+    map.innerHTML = `
+      <polyline points="${line}" fill="none" stroke="#0b1230" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="${line}" fill="none" stroke="#ffffff" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="3.2" fill="#5ee0a0" stroke="#0b1230" stroke-width="1.4"/>
+      <rect x="${(fx - 3.4).toFixed(1)}" y="${(fy - 3.4).toFixed(1)}" width="6.8" height="6.8" rx="1" fill="url(#chk)" stroke="#0b1230" stroke-width="1.4"/>
+      <defs><pattern id="chk" width="3.4" height="3.4" patternUnits="userSpaceOnUse"><rect width="3.4" height="3.4" fill="#fff"/><rect width="1.7" height="1.7" fill="#0b1230"/><rect x="1.7" y="1.7" width="1.7" height="1.7" fill="#0b1230"/></pattern></defs>
+      ${this.riders.map(r => `<g class="d">${dot('#' + r.color.toString(16).padStart(6, '0'), 2.6)}</g>`).join('')}
+      <g class="d me"><circle r="6" fill="#fff" opacity="0.9"/>${dot('#ffd23f', 4)}</g>`;
+    this.mapDots = [...map.querySelectorAll('g.d')];
+  }
+
+  /** Where a rider who has covered `progress` units sits on the minimap. */
+  mapPos(progress) {
+    const pts = this.mapPts;
+    const f = Math.min(Math.max(progress / this.mapStep, 0), pts.length - 1.001);
+    const i = Math.floor(f);
+    const t = f - i;
+    return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * t, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * t];
+  }
+
   updateRushHud() {
     const R = this.rush;
     const h = this.hud;
@@ -1515,9 +1584,14 @@ export class OverdriveGame extends BaseGame {
     h.possuf.textContent = ord(rank);
     h.boost.style.width = `${R.boost * 100}%`;
     h.boost.classList.toggle('on', R.boosting);
-    const dots = h.dots.children;
-    this.riders.forEach((r, i) => (dots[i].style.left = `${Math.min(100, (r.progress / RACE_LENGTH) * 100)}%`));
-    dots[this.riders.length].style.left = `${Math.min(100, (R.progress / RACE_LENGTH) * 100)}%`;
+    if (this.mapDots?.length) {
+      const place = (g, progress) => {
+        const [mx, my] = this.mapPos(progress);
+        g.setAttribute('transform', `translate(${mx.toFixed(1)} ${my.toFixed(1)})`);
+      };
+      this.riders.forEach((r, i) => place(this.mapDots[i], r.progress));
+      place(this.mapDots[this.riders.length], R.progress);
+    }
     h.speed.textContent = Math.round(this.speed * 1.6);
     h.bar.style.width = `${Math.min(100, (this.speed / BOOST_TOP) * 100)}%`;
   }
@@ -1548,7 +1622,7 @@ export class OverdriveGame extends BaseGame {
             <span class="nd-label">POSITION</span>
             <div class="nd-pos-num"><b data-nd="pos">8</b><sup data-nd="possuf">th</sup><small>/ 8</small></div>
           </div>
-          <div class="nd-track"><div class="nd-track-line" data-nd="dots"></div><i class="nd-flag"></i></div>
+          <div class="nd-map"><svg data-nd="map" viewBox="0 0 120 92" aria-label="Track map"></svg></div>
           <div class="nd-boost">
             <span class="nd-label">BOOST</span>
             <div class="nd-boost-bar"><i data-nd="boost"></i></div>
