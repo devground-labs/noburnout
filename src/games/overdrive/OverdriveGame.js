@@ -21,6 +21,17 @@ const DASH_PERIOD = 20; // world units covered by one road-texture tile
 const GRID_PERIOD = 20;
 const SCENERY_SPAN = 480;
 
+// Rush Race (the Road Rash-style mode)
+const RACE_LENGTH = 9000;
+const RUSH_MODE = 'Rush Race';
+const AI_COUNT = 7;
+const PLAYER_TOP = 154;
+const BOOST_TOP = 188;
+const PUNCH_REACH = [0.7, 3.9];
+const AI_GRID = [[-5, 8], [5, 8], [-10, 14], [0, 14], [10, 14], [-5, 20], [5, 20]];
+const AI_SPEEDS = [138, 142, 146, 150, 154, 158, 162];
+const RIDER_COLORS = [0xff6b5b, 0x4aa8ff, 0x5ee0a0, 0xff8fb8, 0xffffff, 0xff9f1c, 0xa78bfa];
+
 const TRAFFIC_COLORS = [0xff6b5b, 0x4aa8ff, 0x5ee0a0, 0xff8fb8, 0xffffff, 0xff9f1c, 0xa78bfa];
 const CANDY = [0xff6b5b, 0xffd23f, 0x5ee0a0, 0xff8fb8, 0x8ad8ff, 0xa78bfa, 0xff9f1c];
 
@@ -46,12 +57,12 @@ export class OverdriveGame extends BaseGame {
       id: 'overdrive',
       name: 'Overdrive',
       subtitle: 'Endless Toy-Track Racer',
-      description: 'Dodge traffic and barricades on an endless, sunny toy-track highway. Squeeze past cars for near-miss bonuses and see how long you can last at top speed.',
+      description: 'Two ways to race on a sunny toy-track highway. Endless: dodge traffic for near-miss bonuses. Rush Race: battle seven rival riders to the finish line, bonking them aside and boosting past the pack.',
       icon: '🏎️',
       badge: 'Infinite Runner',
       genre: 'Racing',
       players: '1 Player',
-      modes: ['Endless']
+      modes: ['Endless', RUSH_MODE]
     });
 
     // This game owns its scene, camera and render pipeline instead of using
@@ -81,6 +92,10 @@ export class OverdriveGame extends BaseGame {
     this.isGameOver = false;
     // Falls back to the key used before the rename so existing bests carry over.
     this.highScore = parseInt(localStorage.getItem('overdrive_highscore') || localStorage.getItem('neon_highscore') || '0', 10);
+
+    this.isRush = false;
+    this.rush = null;
+    this.riders = [];
 
     this.hud = null;
     this._toastTimer = 0;
@@ -118,8 +133,11 @@ export class OverdriveGame extends BaseGame {
     this.buildRoad();
     this.buildScenery();
     this.car = this.buildCar({ body: 0xffd23f, accent: 0xff6b5b, player: true });
+    this.carKind = 'car';
     this.car.position.set(0, 0, 0);
+    this.carWheels = this.car.userData.wheels;
     this.ownScene.add(this.car);
+    this.buildFinishLine();
 
     this.setupPostProcessing();
     this.resize(true);
@@ -127,7 +145,19 @@ export class OverdriveGame extends BaseGame {
 
   start(mode) {
     super.start(mode);
-    this.resetGame();
+    this.isRush = mode === RUSH_MODE;
+    this.swapPlayer(this.isRush ? 'bike' : 'car');
+    document.querySelector('.nd-hud')?.classList.toggle('is-rush', this.isRush);
+    if (this.isRush) {
+      this.resetRush();
+    } else {
+      // Clear out any Rush Race riders and the finish line
+      this.riders.forEach(r => this.disposeObject(r.mesh));
+      this.riders = [];
+      this.rush = null;
+      if (this.finish) this.finish.visible = false;
+      this.resetGame();
+    }
   }
 
   destroy() {
@@ -427,6 +457,7 @@ export class OverdriveGame extends BaseGame {
     car.add(stripe);
 
     // Chunky wheels with white hubs
+    const wheels = [];
     const wheelGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.44, 24);
     wheelGeo.rotateZ(Math.PI / 2);
     const rimGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.47, 14);
@@ -438,8 +469,9 @@ export class OverdriveGame extends BaseGame {
       w.add(new THREE.Mesh(wheelGeo, tireMat), new THREE.Mesh(rimGeo, rimMat));
       w.position.set(x, 0.5, z);
       car.add(w);
-      this.carWheels.push(w);
+      wheels.push(w);
     });
+    car.userData.wheels = wheels;
 
     // Tail light bar and headlamps
     const tail = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.14, 0.08), glow(0xff4d5e));
@@ -521,7 +553,7 @@ export class OverdriveGame extends BaseGame {
   // -------------------------------------------------------------------------
   spawnRow() {
     // Never block more than 3 of the 5 lanes, so a gap always exists.
-    const maxBlocked = this.speed > 130 ? 3 : 2;
+    const maxBlocked = this.isRush ? 2 : this.speed > 130 ? 3 : 2;
     const blocked = 1 + Math.floor(Math.random() * maxBlocked);
     const lanes = [...LANES.keys()].sort(() => Math.random() - 0.5).slice(0, blocked);
     const rowTraffic = TRAFFIC_SPEED * (0.7 + Math.random() * 0.6);
@@ -608,6 +640,10 @@ export class OverdriveGame extends BaseGame {
 
   update(dt, input) {
     if (!this.ownScene) return;
+    if (this.isRush) {
+      this.updateRush(dt, input);
+      return;
+    }
 
     this.updateParticles(dt);
     this.shake = Math.max(0, this.shake - dt * 1.6);
@@ -697,7 +733,7 @@ export class OverdriveGame extends BaseGame {
 
   placeCamera(dt) {
     const cam = this.ownCamera;
-    const speedT = this.isGameOver ? 0 : (this.speed - START_SPEED) / (MAX_SPEED - START_SPEED);
+    const speedT = this.isGameOver ? 0 : THREE.MathUtils.clamp((this.speed - START_SPEED) / (MAX_SPEED - START_SPEED), 0, 1);
     const targetX = this.car.position.x * 0.55;
     cam.position.x += (targetX - cam.position.x) * Math.min(1, dt * 6);
     cam.position.y = 5.2 - speedT * 0.5;
@@ -731,6 +767,543 @@ export class OverdriveGame extends BaseGame {
   }
 
   // -------------------------------------------------------------------------
+  // Rush Race: a Road Rash-style race against seven AI riders
+  // -------------------------------------------------------------------------
+  swapPlayer(kind) {
+    if (this.car && this.carKind === kind) return;
+    if (this.car) this.disposeObject(this.car);
+    this.car =
+      kind === 'bike'
+        ? this.buildBike({ body: 0xffd23f, accent: 0xff6b5b, helmet: 0xffffff })
+        : this.buildCar({ body: 0xffd23f, accent: 0xff6b5b, player: true });
+    this.carKind = kind;
+    this.carWheels = this.car.userData.wheels;
+    this.ownScene.add(this.car);
+  }
+
+  /** A toy motorbike with a cartoon rider. The bike points toward -Z. */
+  buildBike({ body, accent, helmet }) {
+    const bike = new THREE.Group();
+    const bodyMat = new THREE.MeshPhysicalMaterial({ color: body, roughness: 0.35, clearcoat: 0.6, clearcoatRoughness: 0.2 });
+    const suitMat = new THREE.MeshStandardMaterial({ color: accent, roughness: 0.55 });
+    const darkMat = new THREE.MeshStandardMaterial({ color: 0x1b2150, roughness: 0.7 });
+
+    const wheelGeo = new THREE.CylinderGeometry(0.58, 0.58, 0.34, 24);
+    wheelGeo.rotateZ(Math.PI / 2);
+    const hubGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.38, 14);
+    hubGeo.rotateZ(Math.PI / 2);
+    const hubMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+    const wheels = [];
+    [-1.3, 1.3].forEach(z => {
+      const w = new THREE.Group();
+      w.add(new THREE.Mesh(wheelGeo, darkMat), new THREE.Mesh(hubGeo, hubMat));
+      w.position.set(0, 0.58, z);
+      bike.add(w);
+      wheels.push(w);
+    });
+
+    const frame = new THREE.Mesh(new RoundedBoxGeometry(0.8, 0.75, 2.1, 3, 0.25), bodyMat);
+    frame.position.set(0, 1.0, 0.1);
+    bike.add(frame);
+    const tank = new THREE.Mesh(new RoundedBoxGeometry(0.7, 0.4, 0.9, 3, 0.18), bodyMat);
+    tank.position.set(0, 1.5, -0.35);
+    bike.add(tank);
+    const seat = new THREE.Mesh(new RoundedBoxGeometry(0.65, 0.22, 1.0, 2, 0.08), darkMat);
+    seat.position.set(0, 1.45, 0.65);
+    bike.add(seat);
+    const fork = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.1, 0.16), darkMat);
+    fork.position.set(0, 1.05, -1.15);
+    fork.rotation.x = 0.35;
+    bike.add(fork);
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.1, 0.1), darkMat);
+    bar.position.set(0, 1.65, -1.0);
+    bike.add(bar);
+    const fender = new THREE.Mesh(new RoundedBoxGeometry(0.55, 0.16, 0.8, 2, 0.06), suitMat);
+    fender.position.set(0, 1.15, 1.35);
+    bike.add(fender);
+    const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 10), glow(0xfff3b0));
+    lamp.position.set(0, 1.55, -1.3);
+    bike.add(lamp);
+
+    // The rider: leaning into the wind, with a big round helmet
+    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.34, 0.7, 6, 14), suitMat);
+    torso.position.set(0, 2.15, 0.25);
+    torso.rotation.x = -0.6;
+    bike.add(torso);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.42, 18, 14), new THREE.MeshStandardMaterial({ color: helmet, roughness: 0.3 }));
+    head.position.set(0, 2.85, -0.2);
+    bike.add(head);
+    const visor = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 0.2), darkMat);
+    visor.position.set(0, 2.85, -0.58);
+    bike.add(visor);
+    [-1, 1].forEach(side => {
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.1, 8), suitMat);
+      arm.position.set(side * 0.45, 2.0, -0.35);
+      arm.rotation.x = -1.0;
+      bike.add(arm);
+    });
+
+    // Boxing gloves that pop out for a punch
+    const gloveMat = new THREE.MeshStandardMaterial({ color: 0xff4d5e, roughness: 0.4 });
+    const gloves = {};
+    [-1, 1].forEach(side => {
+      const g = new THREE.Mesh(new THREE.SphereGeometry(0.34, 14, 10), gloveMat);
+      g.visible = false;
+      g.position.set(side * 0.5, 2.0, -0.6);
+      bike.add(g);
+      gloves[side] = g;
+    });
+
+    // Soft blob shadow
+    const shadowTex = makeCanvasTexture(64, 64, (ctx, w, h) => {
+      const g = ctx.createRadialGradient(w / 2, h / 2, 2, w / 2, h / 2, w / 2);
+      g.addColorStop(0, 'rgba(10, 14, 40, 0.5)');
+      g.addColorStop(1, 'rgba(10, 14, 40, 0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+    });
+    const shadow = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.6, 5.4),
+      new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, toneMapped: false })
+    );
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = 0.06;
+    bike.add(shadow);
+
+    bike.userData.wheels = wheels;
+    bike.userData.gloves = gloves;
+    return bike;
+  }
+
+  buildFinishLine() {
+    const g = new THREE.Group();
+    const checker = makeCanvasTexture(256, 64, (ctx, w, h) => {
+      const n = 16;
+      for (let y = 0; y < 4; y++) {
+        for (let x = 0; x < n; x++) {
+          ctx.fillStyle = (x + y) % 2 ? '#0b1230' : '#ffffff';
+          ctx.fillRect((x * w) / n, (y * h) / 4, w / n, h / 4);
+        }
+      }
+    });
+    const strip = new THREE.Mesh(new THREE.PlaneGeometry(ROAD_WIDTH, 4), new THREE.MeshBasicMaterial({ map: checker, toneMapped: false }));
+    strip.rotation.x = -Math.PI / 2;
+    strip.position.y = 0.05;
+    g.add(strip);
+
+    const bannerTex = makeCanvasTexture(512, 96, (ctx, w, h) => {
+      ctx.fillStyle = '#0b1230';
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#ffd23f';
+      ctx.fillRect(8, 8, w - 16, h - 16);
+      ctx.fillStyle = '#0b1230';
+      ctx.font = '700 64px Fredoka, "Plus Jakarta Sans", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('FINISH', w / 2, h / 2 + 4);
+    });
+    const banner = new THREE.Mesh(new THREE.BoxGeometry(ROAD_WIDTH + 4, 3, 0.6), new THREE.MeshBasicMaterial({ map: bannerTex, toneMapped: false }));
+    banner.position.y = 9.5;
+    g.add(banner);
+    const postMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+    [-1, 1].forEach(side => {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.8, 10, 0.8), postMat);
+      post.position.set(side * (ROAD_WIDTH / 2 + 1.8), 5, 0);
+      g.add(post);
+    });
+    g.visible = false;
+    this.ownScene.add(g);
+    this.finish = g;
+  }
+
+  resetRush() {
+    if (!this.hud) this.bindHud();
+    this.isGameOver = false;
+    this.speed = 0;
+    this.score = 0;
+    this.shake = 0;
+    this.carVel = 0;
+    this.distanceSinceSpawn = 0;
+    this.car.position.set(0, 0, 0);
+    this.car.rotation.set(0, 0, 0);
+    this.car.visible = true;
+
+    this.obstacles.forEach(o => this.disposeObject(o.mesh));
+    this.obstacles = [];
+    this.particles.forEach(p => this.disposeObject(p.mesh));
+    this.particles = [];
+    this.riders.forEach(r => this.disposeObject(r.mesh));
+
+    this.rush = {
+      state: 'count', t: 0, clock: 0, progress: 0, stun: 0, wipe: 0, invuln: 0, shove: 0,
+      boost: 1, boosting: false, punchCd: 0, punchAnim: 0, punchSide: 1,
+      hits: 0, nearMisses: 0, wipeouts: 0, finishOrder: [], position: AI_COUNT + 1, doneTimer: 0, lastLabel: ''
+    };
+    const suits = [0x1b2150, 0xffd23f, 0xff6b5b, 0x5ee0a0, 0x4aa8ff, 0xff8fb8, 0xa78bfa];
+    this.riders = AI_GRID.map(([x, ahead], i) => {
+      const mesh = this.buildBike({ body: RIDER_COLORS[i], accent: suits[i], helmet: i % 2 ? 0xffffff : 0x1b2150 });
+      this.ownScene.add(mesh);
+      return {
+        id: i, mesh, wheels: mesh.userData.wheels, gloves: mesh.userData.gloves, color: RIDER_COLORS[i],
+        x, targetX: x, progress: ahead, speed: 0, base: AI_SPEEDS[i] + (Math.random() - 0.5) * 6,
+        stun: 0, down: 0, hits: 0, punchCd: 1.5 + Math.random() * 2, punchAnim: 0, punchSide: 1,
+        thinkT: Math.random() * 0.4, finished: false
+      };
+    });
+
+    if (this.hud) {
+      this.hud.rover.classList.remove('show');
+      this.hud.dots.innerHTML =
+        this.riders.map(r => `<span style="--c:#${r.color.toString(16).padStart(6, '0')}"></span>`).join('') +
+        '<span class="me"></span>';
+    }
+    this.setCountdown('');
+    this.updateRushHud();
+  }
+
+  setCountdown(label) {
+    if (!this.hud) return;
+    this.hud.count.textContent = label;
+    this.hud.count.classList.remove('pop');
+    if (label) {
+      void this.hud.count.offsetWidth;
+      this.hud.count.classList.add('pop');
+    }
+  }
+
+  burst(pos, count = 10) {
+    const colors = [0xffd23f, 0xff6b5b, 0xffffff, 0x5ee0a0, 0x4aa8ff];
+    const geo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+    for (let i = 0; i < count; i++) {
+      const m = new THREE.Mesh(geo, glow(colors[i % colors.length]));
+      m.position.copy(pos);
+      m.position.y += 1.6;
+      this.ownScene.add(m);
+      this.particles.push({
+        mesh: m,
+        v: new THREE.Vector3((Math.random() - 0.5) * 18, 5 + Math.random() * 12, (Math.random() - 0.5) * 18),
+        life: 0.7 + Math.random() * 0.4
+      });
+    }
+  }
+
+  playerPunch(side) {
+    const R = this.rush;
+    R.punchCd = 0.35;
+    R.punchAnim = 0.28;
+    R.punchSide = side;
+    const px = this.car.position.x;
+    for (const r of this.riders) {
+      const dz = r.mesh.position.z;
+      const dxs = (r.x - px) * side;
+      if (r.down > 0 || r.finished || Math.abs(dz) > 3.4 || dxs < PUNCH_REACH[0] || dxs > PUNCH_REACH[1]) continue;
+      r.stun = 1.3;
+      r.speed *= 0.55;
+      r.targetX = THREE.MathUtils.clamp(r.x + side * 2.2, -CAR_X_LIMIT, CAR_X_LIMIT);
+      r.hits++;
+      R.hits++;
+      const knockout = r.hits % 3 === 0;
+      if (knockout) {
+        r.down = 1.5;
+        r.speed *= 0.3;
+      }
+      this.showToast(knockout ? 'KNOCKOUT!' : 'BONK!');
+      this.burst(r.mesh.position, knockout ? 18 : 10);
+      this.audio?.hit();
+      return;
+    }
+  }
+
+  aiHitPlayer(r, side) {
+    const R = this.rush;
+    if (R.invuln > 0 || R.wipe > 0) return;
+    R.stun = 1.0;
+    R.shove = -side * 16;
+    this.speed *= 0.65;
+    this.shake = Math.max(this.shake, 0.6);
+    this.showToast('OUCH!');
+    this.audio?.hit();
+  }
+
+  wipeout() {
+    const R = this.rush;
+    R.wipe = 1.2;
+    R.invuln = 2.6;
+    R.wipeouts++;
+    this.speed = Math.min(this.speed, 40);
+    this.shake = 1;
+    this.showToast('WIPEOUT!');
+    this.burst(this.car.position, 20);
+    this.audio?.explosion?.(0.6);
+  }
+
+  aiThink(r, z) {
+    const R = this.rush;
+    const px = this.car.position.x;
+    const ahead = zz => zz < z && z - zz < 55;
+    const blockedAt = lx =>
+      this.obstacles.some(o => ahead(o.mesh.position.z) && Math.abs(o.mesh.position.x - lx) < o.halfW + 1.5) ||
+      this.riders.some(q => q !== r && q.mesh.position.z < z && z - q.mesh.position.z < 14 && Math.abs(q.x - lx) < 1.8);
+
+    let target = r.targetX;
+    if (blockedAt(r.x) || blockedAt(target)) {
+      const lanes = [...LANES].sort((a, b) => Math.abs(a - r.x) - Math.abs(b - r.x));
+      const free = lanes.find(lx => !blockedAt(lx));
+      if (free !== undefined) target = free;
+    } else if (R.state === 'race' && !r.finished && Math.abs(z) < 16 && Math.random() < 0.5) {
+      // Line up beside the player to throw a punch
+      const side = Math.random() < 0.5 ? -1 : 1;
+      const tx = THREE.MathUtils.clamp(px + side * 2.6, -CAR_X_LIMIT, CAR_X_LIMIT);
+      if (!blockedAt(tx)) target = tx;
+    } else if (Math.random() < 0.12) {
+      const lx = LANES[Math.floor(Math.random() * LANES.length)];
+      if (!blockedAt(lx)) target = lx;
+    }
+    r.targetX = target;
+  }
+
+  updateRush(dt, input) {
+    const R = this.rush;
+    if (!R) return;
+    this.updateParticles(dt);
+    this.shake = Math.max(0, this.shake - dt * 1.6);
+    const keys = input.keys;
+    R.t += dt;
+
+    // --- Phases ---------------------------------------------------------
+    if (R.state === 'count') {
+      const label = R.t < 0.8 ? '3' : R.t < 1.6 ? '2' : R.t < 2.4 ? '1' : 'GO!';
+      if (label !== R.lastLabel) {
+        R.lastLabel = label;
+        this.setCountdown(label);
+        this.audio?.click();
+      }
+      if (R.t >= 2.4) {
+        R.state = 'race';
+        R.clock = 0;
+        this.audio?.chime();
+      }
+    }
+    const racing = R.state === 'race';
+    const coasting = R.state === 'finished';
+    if (racing) {
+      R.clock += dt;
+      if (R.clock > 0.8 && R.lastLabel === 'GO!') {
+        R.lastLabel = '';
+        this.setCountdown('');
+      }
+    }
+
+    R.stun = Math.max(0, R.stun - dt);
+    R.wipe = Math.max(0, R.wipe - dt);
+    R.invuln = Math.max(0, R.invuln - dt);
+    R.punchCd = Math.max(0, R.punchCd - dt);
+    R.punchAnim = Math.max(0, R.punchAnim - dt);
+
+    // --- Player steering, boost and speed -------------------------------
+    let dir = 0;
+    if (racing || coasting) {
+      dir = (keys['ArrowRight'] || keys['KeyD'] || this._touchRight ? 1 : 0) - (keys['ArrowLeft'] || keys['KeyA'] || this._touchLeft ? 1 : 0);
+    }
+    if (R.wipe > 0) dir *= 0.3;
+    const maxLateral = 20;
+    this.carVel += (dir * maxLateral - this.carVel) * Math.min(1, dt * 9);
+    this.car.position.x += (this.carVel + R.shove) * dt;
+    R.shove *= Math.exp(-dt * 6);
+    this.car.position.x = THREE.MathUtils.clamp(this.car.position.x, -CAR_X_LIMIT, CAR_X_LIMIT);
+    if (Math.abs(this.car.position.x) >= CAR_X_LIMIT) this.carVel *= 0.3;
+
+    const wantBoost = racing && R.wipe <= 0 && R.boost > 0.02 && (keys['Space'] || keys['ShiftLeft'] || keys['ShiftRight'] || this._touchBoost);
+    R.boosting = !!wantBoost;
+    R.boost = wantBoost ? Math.max(0, R.boost - dt * 0.4) : Math.min(1, R.boost + dt * 0.1);
+
+    let top = racing ? (R.boosting ? BOOST_TOP : PLAYER_TOP) : coasting ? 55 : 0;
+    if (R.stun > 0) top *= 0.55;
+    if (R.wipe > 0) top = 20;
+    const rate = R.wipe > 0 ? 4 : top > this.speed ? (R.boosting ? 2.4 : 0.9) : 2.2;
+    this.speed += (top - this.speed) * Math.min(1, dt * rate);
+    R.progress += this.speed * dt;
+    this.score = R.progress;
+
+    // --- Punching -------------------------------------------------------
+    if (racing && R.punchCd <= 0 && R.wipe <= 0) {
+      let side = 0;
+      if (input.wasJustPressed('KeyQ') || input.wasJustPressed('KeyJ') || this._punchReq === -1) side = -1;
+      else if (input.wasJustPressed('KeyE') || input.wasJustPressed('KeyK') || this._punchReq === 1) side = 1;
+      if (side) this.playerPunch(side);
+    }
+    this._punchReq = 0;
+
+    // --- Player bike visuals ---------------------------------------------
+    const car = this.car;
+    car.rotation.z = -this.carVel * 0.012 + (R.stun > 0 ? Math.sin(R.t * 34) * 0.14 : 0);
+    car.rotation.y = R.wipe > 0 ? (R.wipe / 1.2) * Math.PI * 4 : -this.carVel * 0.02;
+    car.position.y = R.wipe > 0 ? Math.sin((R.wipe / 1.2) * Math.PI) * 1.6 : 0;
+    car.visible = R.invuln > 0 && R.wipe <= 0 ? Math.floor(R.invuln * 12) % 2 === 0 : true;
+    this.carWheels.forEach(w => (w.rotation.x -= this.speed * dt * 0.4));
+    this.animateGloves(car, R.punchAnim, R.punchSide);
+
+    // --- World scroll + traffic ----------------------------------------
+    this.scrollWorld(this.speed, dt);
+    if (racing) {
+      this.distanceSinceSpawn += this.speed * dt;
+      if (this.distanceSinceSpawn >= 120) {
+        this.distanceSinceSpawn = 0;
+        this.spawnRow();
+      }
+    }
+    const px = car.position.x;
+    for (let i = this.obstacles.length - 1; i >= 0; i--) {
+      const o = this.obstacles[i];
+      o.mesh.position.z += (this.speed - o.v) * dt;
+      if (o.mesh.position.z > DESPAWN_Z) {
+        this.disposeObject(o.mesh);
+        this.obstacles.splice(i, 1);
+        continue;
+      }
+      const dx = Math.abs(o.mesh.position.x - px);
+      const dz = Math.abs(o.mesh.position.z);
+      if (R.invuln <= 0 && dx < o.halfW + 0.7 && dz < o.halfL + 1.9) {
+        this.wipeout();
+      } else if (!o.passed && o.mesh.position.z > 3.2) {
+        o.passed = true;
+        if (dx < o.halfW + 2.6 && R.wipe <= 0) {
+          R.nearMisses++;
+          R.boost = Math.min(1, R.boost + 0.15);
+          this.showToast('NEAR MISS +BOOST');
+        }
+      }
+    }
+
+    // --- AI riders --------------------------------------------------------
+    for (const r of this.riders) {
+      r.stun = Math.max(0, r.stun - dt);
+      r.down = Math.max(0, r.down - dt);
+      r.punchCd -= dt;
+      r.punchAnim = Math.max(0, r.punchAnim - dt);
+
+      let target = R.state === 'count' ? 0 : r.base;
+      const gap = r.progress - R.progress; // positive = ahead of the player
+      if (gap > 140) target *= 0.93;
+      else if (gap > 60) target *= 0.97;
+      if (gap < -50) target *= 1.08;
+      if (gap < -120) target *= 1.16;
+      if (r.stun > 0) target *= 0.55;
+      if (r.down > 0) target = 18;
+      if (r.finished) target = 120;
+      r.speed += (target - r.speed) * Math.min(1, dt * 1.6);
+      r.progress += r.speed * dt;
+      if (!r.finished && r.progress >= RACE_LENGTH) {
+        r.finished = true;
+        R.finishOrder.push(r.id);
+      }
+
+      const z = -(r.progress - R.progress);
+      r.thinkT -= dt;
+      if (r.thinkT <= 0 && r.down <= 0 && !r.finished) {
+        r.thinkT = 0.35 + Math.random() * 0.3;
+        this.aiThink(r, z);
+      }
+      const step = 14 * dt;
+      r.x = THREE.MathUtils.clamp(r.x + THREE.MathUtils.clamp(r.targetX - r.x, -step, step), -CAR_X_LIMIT, CAR_X_LIMIT);
+
+      if (r.down <= 0) {
+        for (const o of this.obstacles) {
+          if (Math.abs(o.mesh.position.x - r.x) < o.halfW + 0.8 && Math.abs(o.mesh.position.z - z) < o.halfL + 1.9) {
+            r.down = 1.3;
+            r.speed *= 0.25;
+            break;
+          }
+        }
+      }
+
+      // Fight back when the player is alongside
+      const rel = px - r.x;
+      if (racing && r.punchCd <= 0 && r.down <= 0 && !r.finished && Math.abs(z) < 3.2 && Math.abs(rel) > PUNCH_REACH[0] && Math.abs(rel) < PUNCH_REACH[1]) {
+        r.punchCd = 2.2 + Math.random() * 2.5;
+        r.punchAnim = 0.28;
+        r.punchSide = Math.sign(rel);
+        this.aiHitPlayer(r, -Math.sign(rel));
+      }
+
+      const m = r.mesh;
+      m.visible = z > -320 && z < 22;
+      m.position.set(r.x, r.down > 0 ? Math.sin((r.down / 1.5) * Math.PI) * 1.4 : 0, z);
+      m.rotation.y = r.down > 0 ? (r.down / 1.5) * Math.PI * 4 : 0;
+      m.rotation.z = -(r.targetX - r.x) * 0.06 + (r.stun > 0 ? Math.sin(R.t * 34 + r.id) * 0.14 : 0);
+      r.wheels.forEach(w => (w.rotation.x -= r.speed * dt * 0.4));
+      this.animateGloves(m, r.punchAnim, r.punchSide, r.gloves);
+    }
+
+    // --- Finish line ------------------------------------------------------
+    const fz = -(RACE_LENGTH - R.progress);
+    this.finish.visible = fz > -330 && fz < 30;
+    this.finish.position.z = fz;
+    if (racing && R.progress >= RACE_LENGTH) this.finishRace();
+
+    // --- Result card ----------------------------------------------------
+    if (coasting) {
+      R.doneTimer += dt;
+      if (R.doneTimer > 1.4 && this.hud && !this.hud.rover.classList.contains('show')) this.showRaceOver();
+      if (R.doneTimer > 1.4 && (input.wasJustPressed('Enter') || input.wasJustPressed('Space'))) this.resetRush();
+    }
+
+    this.placeCamera(dt);
+  }
+
+  animateGloves(bike, anim, side, gloves = bike.userData.gloves) {
+    if (!gloves) return;
+    [-1, 1].forEach(s => {
+      const g = gloves[s];
+      const on = anim > 0 && s === side;
+      g.visible = on;
+      if (on) {
+        const t = 1 - anim / 0.28;
+        g.position.x = s * (0.5 + Math.sin(t * Math.PI) * 1.3);
+      }
+    });
+  }
+
+  finishRace() {
+    const R = this.rush;
+    R.state = 'finished';
+    R.finishTime = R.clock;
+    R.position = R.finishOrder.length + 1;
+    R.finishOrder.push('player');
+    R.doneTimer = 0;
+    this.showToast('FINISH!');
+    this.audio?.[R.position <= 3 ? 'victory' : 'chime']?.();
+  }
+
+  showRaceOver() {
+    const R = this.rush;
+    const h = this.hud;
+    const ord = n => `${n}${['th', 'st', 'nd', 'rd'][n % 100 > 10 && n % 100 < 14 ? 0 : Math.min(n % 10, 4) % 4] || 'th'}`;
+    h.rtitle.textContent = R.position === 1 ? 'WINNER!' : R.position <= 3 ? 'PODIUM!' : 'FINISHED!';
+    h.rplace.textContent = `${ord(R.position)} of ${AI_COUNT + 1}`;
+    const t = R.finishTime;
+    h.rstats.textContent = `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')} · ${R.hits} bonk${R.hits === 1 ? '' : 's'} · ${R.wipeouts} wipeout${R.wipeouts === 1 ? '' : 's'}`;
+    h.rover.classList.add('show');
+  }
+
+  updateRushHud() {
+    const R = this.rush;
+    const h = this.hud;
+    if (!R || !h) return;
+    const ord = n => ['th', 'st', 'nd', 'rd'][n % 100 > 10 && n % 100 < 14 ? 0 : Math.min(n % 10, 4) % 4] || 'th';
+    const rank = R.state === 'finished' ? R.position : 1 + this.riders.filter(r => r.progress > R.progress).length;
+    h.pos.textContent = rank;
+    h.possuf.textContent = ord(rank);
+    h.boost.style.width = `${R.boost * 100}%`;
+    h.boost.classList.toggle('on', R.boosting);
+    const dots = h.dots.children;
+    this.riders.forEach((r, i) => (dots[i].style.left = `${Math.min(100, (r.progress / RACE_LENGTH) * 100)}%`));
+    dots[this.riders.length].style.left = `${Math.min(100, (R.progress / RACE_LENGTH) * 100)}%`;
+    h.speed.textContent = Math.round(this.speed * 1.6);
+    h.bar.style.width = `${Math.min(100, (this.speed / BOOST_TOP) * 100)}%`;
+  }
+
+  // -------------------------------------------------------------------------
   // HUD (static markup built once, then patched; styles live in style.css)
   // -------------------------------------------------------------------------
   getHUDHtml() {
@@ -750,6 +1323,31 @@ export class OverdriveGame extends BaseGame {
         <div class="nd-touch">
           <button class="nd-steer" data-nd="left" aria-label="Steer left">◀</button>
           <button class="nd-steer" data-nd="right" aria-label="Steer right">▶</button>
+        </div>
+        <div class="nd-rush">
+          <div class="nd-pos">
+            <span class="nd-label">POSITION</span>
+            <div class="nd-pos-num"><b data-nd="pos">8</b><sup data-nd="possuf">th</sup><small>/ 8</small></div>
+          </div>
+          <div class="nd-track"><div class="nd-track-line" data-nd="dots"></div><i class="nd-flag"></i></div>
+          <div class="nd-boost">
+            <span class="nd-label">BOOST</span>
+            <div class="nd-boost-bar"><i data-nd="boost"></i></div>
+          </div>
+          <div class="nd-count" data-nd="count"></div>
+          <div class="nd-act">
+            <button class="nd-act-btn" data-nd="punchL" aria-label="Punch left">◀ BONK</button>
+            <button class="nd-act-btn boost" data-nd="boostBtn" aria-label="Boost">BOOST</button>
+            <button class="nd-act-btn" data-nd="punchR" aria-label="Punch right">BONK ▶</button>
+          </div>
+          <div class="nd-gameover nd-race-over" data-nd="rover">
+            <div class="nd-over-card">
+              <h1 data-nd="rtitle">FINISHED!</h1>
+              <div class="nd-over-score" data-nd="rplace">1st of 8</div>
+              <p class="nd-over-stat" data-nd="rstats"></p>
+              <button class="nd-restart" data-nd="rrestart">RACE AGAIN <kbd>ENTER</kbd></button>
+            </div>
+          </div>
         </div>
         <div class="nd-gameover" data-nd="over">
           <div class="nd-over-card">
@@ -778,6 +1376,15 @@ export class OverdriveGame extends BaseGame {
     };
     bindSteer(els.left, '_touchLeft');
     bindSteer(els.right, '_touchRight');
+    els.rrestart?.addEventListener('click', () => this.isRush && this.rush?.state === 'finished' && this.resetRush());
+    const tap = (el, fn) => {
+      el.addEventListener('pointerdown', e => { e.preventDefault(); fn(true); });
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => el.addEventListener(t, () => fn(false)));
+      el.addEventListener('contextmenu', e => e.preventDefault());
+    };
+    if (els.punchL) tap(els.punchL, down => down && (this._punchReq = -1));
+    if (els.punchR) tap(els.punchR, down => down && (this._punchReq = 1));
+    if (els.boostBtn) tap(els.boostBtn, down => (this._touchBoost = down));
     this.hud = els;
     return true;
   }
@@ -805,6 +1412,10 @@ export class OverdriveGame extends BaseGame {
 
   updateHUD() {
     if (!this.hud && !this.bindHud()) return;
+    if (this.isRush) {
+      this.updateRushHud();
+      return;
+    }
     const h = this.hud;
     const score = Math.floor(this.score);
     if (h.score.textContent !== String(score)) h.score.textContent = score.toLocaleString();
@@ -817,7 +1428,9 @@ export class OverdriveGame extends BaseGame {
   getControlsGuide() {
     return [
       { label: 'Steer Left/Right', keys: 'A / D or Arrows' },
-      { label: 'Restart (on crash)', keys: 'ENTER / SPACE' },
+      { label: 'Rush Race: Bonk Left / Right', keys: 'Q / E (or J / K) · tap BONK' },
+      { label: 'Rush Race: Boost', keys: 'SPACE / SHIFT · hold BOOST' },
+      { label: 'Restart (on crash / finish)', keys: 'ENTER / SPACE' },
       { label: 'Return to Lobby', keys: 'ESC or Lobby Button' }
     ];
   }

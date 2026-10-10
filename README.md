@@ -23,7 +23,7 @@ A high-performance, modular **3D Web Game Framework** built on **Three.js**, **C
 
 1. **Cyber Tanks 3D** (`cyber-tanks`): tactical tank duels with destructible cover. Modes: 1P vs AI, 2P local duel, Practice target range. A match is 3 rounds.
 2. **Astro-Blaster 3D** (`astro-blaster`): dodge and blast asteroid fields with twin plasma blasters and combo multipliers. Modes: Arcade Survival, Practice Drift.
-3. **Overdrive** (`overdrive`): an endless, sunny toy-track highway. Dodge traffic and barricades as the speed climbs.
+3. **Overdrive** (`overdrive`): a sunny toy-track highway racer. Modes: Endless (dodge traffic and barricades as the speed climbs) and Rush Race (a Road Rash-style race against seven AI riders: bonk them aside, boost past the pack and beat them to the finish line).
 4. **Cyber-Runner** (`cyber-runner`): jump and double jump over obstacles and grab gems. 1 Player is endless with rising difficulty, 2 Players is a head-to-head race.
 5. **Pinball** (`pinball`): a classic 2D table with two flippers, pop bumpers, slingshots, side orbits with spinners, a saucer, drop targets and rollover lanes. Works with keyboard, mouse and touch. Modes: Classic (3 balls), Zen (endless).
 6. **Maze Paint** (`maze-paint`): a brain puzzle. Drag one unbroken path through every box of a patterned maze exactly once. Fifty levels of rising difficulty that unlock in order, with keyboard, mouse and touch support. Progress and best times are saved locally.
