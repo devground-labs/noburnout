@@ -126,3 +126,139 @@ export function createEnemyJetMesh() {
 
   return group;
 }
+
+/**
+ * The player's jet form: a yellow delta-wing fighter with twin tails, wing-tip missile pods
+ * and glowing nozzles. The nose points toward -Z, like the starfighter.
+ */
+export function createJetShip() {
+  const group = new THREE.Group();
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffd23f, metalness: 0.2, roughness: 0.35 });
+  const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.2, roughness: 0.4 });
+  const navyMat = new THREE.MeshStandardMaterial({ color: 0x1b2150, metalness: 0.3, roughness: 0.45 });
+  const wingMat = new THREE.MeshStandardMaterial({ color: 0xdfe9ff, metalness: 0.2, roughness: 0.4 });
+  const coralMat = new THREE.MeshStandardMaterial({ color: 0xff6b5b, metalness: 0.2, roughness: 0.4 });
+
+  const fuselage = new THREE.Mesh(new THREE.CapsuleGeometry(0.55, 3.0, 6, 16), bodyMat);
+  fuselage.rotation.x = Math.PI / 2;
+  group.add(fuselage);
+
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.5, 16), whiteMat);
+  nose.rotation.x = -Math.PI / 2;
+  nose.position.z = -3.0;
+  group.add(nose);
+
+  const canopy = new THREE.Mesh(
+    new THREE.SphereGeometry(0.5, 16, 12),
+    new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.15, metalness: 0.3 })
+  );
+  canopy.scale.set(0.85, 0.7, 1.9);
+  canopy.position.set(0, 0.45, -0.9);
+  group.add(canopy);
+
+  // Delta wings (the shape's Y runs along the ship's length once it is laid flat)
+  const wingShape = new THREE.Shape();
+  wingShape.moveTo(0, -1.4);
+  wingShape.lineTo(3.5, 1.0);
+  wingShape.lineTo(3.5, 1.6);
+  wingShape.lineTo(0, 1.6);
+  wingShape.closePath();
+  const wingGeo = new THREE.ExtrudeGeometry(wingShape, { depth: 0.14, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.04, bevelSegments: 2 });
+  [1, -1].forEach(side => {
+    const wing = new THREE.Mesh(wingGeo, wingMat);
+    wing.rotation.x = Math.PI / 2;
+    wing.scale.x = side;
+    wing.position.set(0, -0.08, 0.5);
+    group.add(wing);
+
+    // wing-tip missile pod
+    const pod = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 1.1, 4, 10), coralMat);
+    pod.rotation.x = Math.PI / 2;
+    pod.position.set(side * 3.4, -0.08, 1.0);
+    group.add(pod);
+    const podTip = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.4, 10), whiteMat);
+    podTip.rotation.x = -Math.PI / 2;
+    podTip.position.set(side * 3.4, -0.08, 0.2);
+    group.add(podTip);
+
+    // twin tail fin
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.1, 0.9), coralMat);
+    fin.position.set(side * 0.55, 0.75, 1.5);
+    fin.rotation.z = side * -0.22;
+    group.add(fin);
+
+    // engine nozzle and glow
+    const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.38, 0.6, 14), navyMat);
+    nozzle.rotation.x = Math.PI / 2;
+    nozzle.position.set(side * 0.38, 0, 2.2);
+    group.add(nozzle);
+    const glow = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 0.2, 14), new THREE.MeshBasicMaterial({ color: 0xffa23a }));
+    glow.rotation.x = Math.PI / 2;
+    glow.position.set(side * 0.38, 0, 2.55);
+    group.add(glow);
+  });
+
+  return group;
+}
+
+/**
+ * An AI dogfighter: a toy fighter plane with swept wings and a twin tail. Built nose toward -Z
+ * (like the player); the game turns it around to face the player.
+ * `mats` lists its materials so the game can flash or glow them.
+ */
+export function createDogfighterMesh({ ace = false } = {}) {
+  const group = new THREE.Group();
+  const bodyColor = ace ? 0xffd23f : 0xff6b5b;
+  const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor, metalness: 0.15, roughness: 0.4 });
+  const wingMat = new THREE.MeshStandardMaterial({ color: ace ? 0xfff3c4 : 0xffe1d6, metalness: 0.15, roughness: 0.45 });
+  const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.1, roughness: 0.4 });
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x1b2150, metalness: 0.4, roughness: 0.15 });
+
+  const fuselage = new THREE.Mesh(new THREE.CapsuleGeometry(0.5, 2.0, 6, 14), bodyMat);
+  fuselage.rotation.x = Math.PI / 2;
+  group.add(fuselage);
+
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.0, 14), whiteMat);
+  nose.rotation.x = -Math.PI / 2;
+  nose.position.z = -1.9;
+  group.add(nose);
+
+  const canopy = new THREE.Mesh(new THREE.SphereGeometry(0.42, 14, 10), glassMat);
+  canopy.scale.set(0.8, 0.7, 1.7);
+  canopy.position.set(0, 0.4, -0.5);
+  group.add(canopy);
+
+  const wingShape = new THREE.Shape();
+  wingShape.moveTo(0, -0.6);
+  wingShape.lineTo(3.0, 0.9);
+  wingShape.lineTo(3.0, 1.4);
+  wingShape.lineTo(0, 1.0);
+  wingShape.closePath();
+  const wingGeo = new THREE.ExtrudeGeometry(wingShape, { depth: 0.12, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.04, bevelSegments: 2 });
+  const stripeGeo = new THREE.BoxGeometry(0.5, 0.05, 0.2);
+  [1, -1].forEach(side => {
+    const wing = new THREE.Mesh(wingGeo, wingMat);
+    wing.rotation.x = Math.PI / 2;
+    wing.scale.x = side;
+    wing.position.set(0, -0.06, 0.3);
+    group.add(wing);
+
+    const tip = new THREE.Mesh(stripeGeo, whiteMat);
+    tip.position.set(side * 2.8, 0.04, 1.2);
+    group.add(tip);
+
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.9, 0.7), bodyMat);
+    fin.position.set(side * 0.5, 0.65, 1.2);
+    fin.rotation.z = side * -0.2;
+    group.add(fin);
+  });
+
+  const engine = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.4, 12), new THREE.MeshBasicMaterial({ color: 0xffa23a }));
+  engine.rotation.x = Math.PI / 2;
+  engine.position.z = 1.9;
+  group.add(engine);
+
+  const mats = [bodyMat, wingMat, whiteMat, glassMat];
+  group.userData.mats = mats;
+  return group;
+}
