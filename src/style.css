@@ -2104,6 +2104,54 @@ a.nav-btn { text-decoration: none; }
   .astro-transform .at-hint { display: none; }
 }
 
+/* Astro-Blaster: atom bomb button and the white-out when a planet goes up */
+.astro-nuke {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle at 50% 60%, #fff, #fff6d6 60%, #ffd9a0);
+}
+.astro-nuke.show { animation: astro-nuke 1.6s ease-out; }
+@keyframes astro-nuke { 0% { opacity: 0.95; } 25% { opacity: 0.8; } 100% { opacity: 0; } }
+.astro-bomb {
+  position: absolute;
+  bottom: max(26px, env(safe-area-inset-bottom));
+  left: calc(50% + 100px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 138px;
+  padding: 10px 16px 12px;
+  color: var(--a-navy);
+  background: #fff;
+  border: 3px solid var(--a-navy);
+  border-radius: 16px;
+  box-shadow: 0 5px 0 var(--a-navy);
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.astro-bomb[hidden] { display: none; }
+.astro-bomb .ab-name { font: 700 1.1rem/1 var(--a-display); letter-spacing: 0.03em; }
+.astro-bomb .ab-hint { font: 400 0.45rem var(--a-pixel); letter-spacing: 0.04em; color: #384064; }
+.astro-bomb .ab-fill { position: absolute; left: 0; bottom: 0; height: 5px; width: 0; background: #ff9f1c; border-top: 2px solid var(--a-navy); transition: width 0.15s; }
+.astro-bomb:not(.ready) { opacity: 0.75; }
+.astro-bomb.ready { background: #ff6b5b; color: #fff; text-shadow: 0 2px 0 var(--a-navy); animation: astro-armed 0.6s ease-in-out infinite alternate; }
+.astro-bomb.ready .ab-hint { color: #fff; }
+.astro-bomb:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--a-navy); }
+@keyframes astro-armed { to { transform: translateY(-3px); box-shadow: 0 8px 0 var(--a-navy); } }
+@media (pointer: coarse) {
+  .astro-bomb { bottom: auto; top: 192px; left: auto; right: 12px; min-width: 0; padding: 8px 12px 10px; }
+  .astro-bomb .ab-hint { display: none; }
+}
+@media (max-width: 900px) and (pointer: fine) {
+  .astro-bomb { left: auto; right: 16px; bottom: 100px; }
+}
+
 @media (max-width: 760px) {
   .tank-top-bar { margin-top: 50px; }
   .tank-modal-box { padding: 24px 20px; }

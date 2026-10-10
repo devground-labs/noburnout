@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import { BaseGame } from '../../framework/BaseGame.js';
-import { createFighterShip, createJetShip, createAsteroidMesh, createEnemyJetMesh, createDogfighterMesh } from './ShipModel.js';
+import { createFighterShip, createJetShip, createAsteroidMesh, createEnemyJetMesh, createDogfighterMesh, createBombMesh } from './ShipModel.js';
 
 const TRANSFORM_TIME = 0.55; // seconds for the barrel-roll transformation
 const TRANSFORM_COOLDOWN = 2.2;
 const JET_SPEED = 1.45; // the jet flies faster than the starfighter
 const JET_HULL = 0.35; // ...but is a bigger target
+const BOMB_COST = 100; // charge needed for the atom bomb
 
 export class AstroBlasterGame extends BaseGame {
   constructor() {
@@ -13,7 +14,7 @@ export class AstroBlasterGame extends BaseGame {
       id: 'astro-blaster',
       name: 'Astro-Blaster 3D',
       subtitle: 'High-Velocity Deep Space Arcade Combat',
-      description: 'Pilot a starfighter through dense asteroid belts and into dogfights with AI fighter planes. Transform into a jet with homing missiles, shoot down rivals to patch your shields, and rack up chain combos.',
+      description: 'Pilot a starfighter through dense asteroid belts and into dogfights with AI fighter planes. Transform into a jet with homing missiles, shoot down rivals to patch your shields, and charge up an atom bomb to annihilate a planet.',
       icon: '🚀',
       badge: 'Arcade Space Combat',
       genre: '3D Space Shooter',
@@ -39,6 +40,13 @@ export class AstroBlasterGame extends BaseGame {
     this.form = 'starfighter'; // or 'jet'
     this.tf = { active: false, t: 0, swapped: false, to: 'jet', cd: 0 };
     this._pod = 1;
+    // Atom bomb: charges over time and with kills, then annihilates a planet
+    this.bombCharge = 50;
+    this.bomb = null;
+    this.wipe = null;
+    this.timeScale = 1;
+    this.shake = 0;
+    this._shaking = false;
 
     this.score = 0;
     this.highScore = 0;
@@ -87,6 +95,7 @@ export class AstroBlasterGame extends BaseGame {
     // Toggle floodlight with 'F' key
     this.handleKeyDown = (e) => {
       if (e.code === 'KeyT' && !e.repeat) this.startTransform();
+      if (e.code === 'KeyB' && !e.repeat) this.launchBomb();
       if (e.code === 'KeyF' || e.code === 'KeyL') {
         this.floodLightOn = !this.floodLightOn;
         this.floodLight.intensity = this.floodLightOn ? 15.0 : 0;
@@ -123,6 +132,15 @@ export class AstroBlasterGame extends BaseGame {
     this.shipMesh.add(this.floodLightTarget);
     this.floodLight.target = this.floodLightTarget;
     this.scene.add(this.shipMesh);
+
+    // A red ring that marks the planet the atom bomb will hit
+    this.lockRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.93, 1, 64),
+      new THREE.MeshBasicMaterial({ color: 0xff4d5e, transparent: true, opacity: 0.9, depthTest: false, side: THREE.DoubleSide })
+    );
+    this.lockRing.renderOrder = 10;
+    this.lockRing.visible = false;
+    this.scene.add(this.lockRing);
 
     // Shared geometry and materials for bolts, missiles and sparks
     const missileBody = new THREE.CapsuleGeometry(0.2, 0.8, 4, 8);
@@ -186,13 +204,19 @@ export class AstroBlasterGame extends BaseGame {
     this.particles.forEach(p => this.scene.remove(p.mesh));
     this.particles = [];
     this.dogTimer = 8; // the first bogey arrives soon after the start
+    if (this.bomb) this.scene.remove(this.bomb.mesh);
+    this.bomb = null;
+    this.wipe = null;
+    this.bombCharge = 50;
+    this.timeScale = 1;
+    this.shake = 0;
     this.dogSpawns = 0;
     this.setForm('starfighter');
     this.tf = { active: false, t: 0, swapped: false, to: 'jet', cd: 0 };
 
     this.distance = 0;
     this.enemySpawnTimer = 0;
-    this.planetSpawnTimer = 0;
+    this.planetSpawnTimer = 7; // a first planet drifts into view within a few seconds
 
     this.ship.x = 0;
     this.ship.y = 0;
@@ -225,6 +249,7 @@ export class AstroBlasterGame extends BaseGame {
     this.camera.position.set(0, 10, camZ);
     this.camera.lookAt(0, 0, -10);
     this.camera.updateProjectionMatrix();
+    this._camBase = { y: 10, z: camZ };
 
     // Visible half-width at the ship's plane, then fit the playfield inside it
     const planeDist = camZ - 14 + 2;
@@ -260,6 +285,7 @@ export class AstroBlasterGame extends BaseGame {
 
     this.planets.push({
       mesh,
+      radius,
       vz: 12 + Math.random() * 8, // Slow moving
       rotY: (Math.random() - 0.5) * 0.05
     });
@@ -334,6 +360,12 @@ export class AstroBlasterGame extends BaseGame {
   }
 
   update(dt, input) {
+    // Slow motion for the big moments (the clock eases back to normal on its own)
+    const rawDt = dt;
+    dt *= this.timeScale;
+    this.timeScale = Math.min(1, this.timeScale + rawDt * 0.9);
+    this.updateShake(rawDt);
+
     // 1. Hyperspace starfield illusion removed
 
     // 1. Move Lower Starfield
@@ -558,12 +590,14 @@ export class AstroBlasterGame extends BaseGame {
     }
 
     this.updateAirCombat(dt, difficultyLevel);
+    this.updateBomb(dt);
 
     // 6. Update Particles
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.mesh.position.addScaledVector(p.vel, dt);
       p.life -= dt;
+      if (p.spin) p.mesh.rotation.x += p.spin * dt;
       if (p.shrink) p.mesh.scale.setScalar(Math.max(0.01, p.life / p.maxLife));
       if (p.grow) {
         const k = 1 - p.life / p.maxLife;
@@ -815,6 +849,7 @@ export class AstroBlasterGame extends BaseGame {
     const i = this.dogfighters.indexOf(d);
     if (i >= 0) this.dogfighters.splice(i, 1);
     this.audio?.explosion?.(1.0);
+    this.addCharge(d.ace ? 50 : 30);
     this.score += (d.ace ? 1000 : 400) * this.multiplier;
     this.multiplier = Math.min(8, this.multiplier + 1);
     if (this.score > this.highScore) this.highScore = this.score;
@@ -1024,6 +1059,212 @@ export class AstroBlasterGame extends BaseGame {
   }
 
   // -------------------------------------------------------------------------
+  // Atom bomb (jet only): drop it on a planet and annihilate it
+  // -------------------------------------------------------------------------
+  /** The planet the bomb would hit: the biggest one currently on screen. */
+  bombTarget() {
+    let best = null;
+    for (const p of this.planets) {
+      const z = p.mesh.position.z;
+      if (z > 20 || z < -195) continue;
+      if (!best || p.radius > best.radius) best = p;
+    }
+    return best;
+  }
+
+  addCharge(amount) {
+    this.bombCharge = Math.min(BOMB_COST, this.bombCharge + amount);
+  }
+
+  launchBomb() {
+    if (!this.isRunning || this.gameOver || this.bomb || this.tf.active) return;
+    if (this.form !== 'jet') return;
+    if (this.bombCharge < BOMB_COST) {
+      this.toast('BOMB CHARGING...');
+      return;
+    }
+    const target = this.bombTarget();
+    if (!target) {
+      this.toast('NO PLANET IN RANGE');
+      return;
+    }
+    this.bombCharge = 0;
+    const mesh = createBombMesh();
+    mesh.position.set(this.ship.x, this.ship.y - 0.6, this.ship.z - 1);
+    this.scene.add(mesh);
+    this.bomb = {
+      mesh,
+      pos: mesh.position.clone(),
+      vel: new THREE.Vector3(0, -7, -10), // it drops away from the jet first
+      target,
+      age: 0,
+      smoke: 0
+    };
+    this.toast('ATOM BOMB AWAY!');
+    this.audio?.missileLaunch?.();
+    this.audio?.whoosh?.(1.4, 2600, 250, 0.3); // a falling whistle
+  }
+
+  updateBomb(dt) {
+    // The bomb charges by itself, and faster when you shoot things down
+    if (!this.bomb) this.addCharge(dt * 1.8);
+
+    // Mark the planet it would hit once it is armed
+    const ring = this.lockRing;
+    const armedTarget = this.form === 'jet' && !this.bomb && this.bombCharge >= BOMB_COST ? this.bombTarget() : null;
+    if (armedTarget) {
+      ring.visible = true;
+      ring.position.copy(armedTarget.mesh.position);
+      ring.scale.setScalar(armedTarget.radius * 1.12);
+      ring.lookAt(this.camera.position);
+      ring.material.opacity = 0.55 + 0.4 * Math.sin(performance.now() * 0.008);
+    } else {
+      ring.visible = false;
+    }
+
+    // Delayed blast wave that sweeps the playfield after a planet goes up
+    if (this.wipe) {
+      this.wipe.t -= dt;
+      if (this.wipe.t <= 0) {
+        this.wipeField();
+        this.wipe = null;
+      }
+    }
+
+    const b = this.bomb;
+    if (!b) return;
+    b.age += dt;
+    const tp = b.target.mesh.position;
+    const speed = 22 + 80 * Math.min(1, b.age / 1.1);
+    b.vel.lerp(tp.clone().sub(b.pos).normalize().multiplyScalar(speed), Math.min(1, dt * 3.5));
+    b.pos.addScaledVector(b.vel, dt);
+    b.mesh.position.copy(b.pos);
+    b.mesh.lookAt(b.pos.clone().add(b.vel));
+
+    b.smoke -= dt;
+    if (b.smoke <= 0) {
+      b.smoke = 0.025;
+      const puff = new THREE.Mesh(this.fx.smokeGeo, this.fx.sparkMats[1]);
+      puff.position.copy(b.pos);
+      puff.scale.setScalar(1.6);
+      this.scene.add(puff);
+      this.particles.push({ mesh: puff, vel: new THREE.Vector3(0, 0, 6), life: 0.5, maxLife: 0.5, shrink: true });
+    }
+
+    if (b.pos.distanceTo(tp) < b.target.radius * 0.95 || b.age > 7) {
+      this.scene.remove(b.mesh);
+      this.bomb = null;
+      this.annihilate(b.target);
+    }
+  }
+
+  /** Blow a planet to pieces. */
+  annihilate(planet) {
+    const pos = planet.mesh.position.clone();
+    const R = planet.radius;
+    const color = planet.mesh.material.color.getHex();
+    const i = this.planets.indexOf(planet);
+    if (i >= 0) this.planets.splice(i, 1);
+    this.scene.remove(planet.mesh);
+
+    // Bright core and expanding shockwaves
+    const glowMat = hex => new THREE.MeshBasicMaterial({ color: hex, transparent: true, depthWrite: false });
+    const orb = (hex, radius, grow, life, vy = 0) => {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(radius, 24, 18), glowMat(hex));
+      m.position.copy(pos);
+      this.scene.add(m);
+      this.particles.push({ mesh: m, vel: new THREE.Vector3(0, vy, 0), life, maxLife: life, grow });
+    };
+    orb(0xffffff, R * 0.9, 1.4, 0.9);
+    orb(0xffd23f, R * 0.7, 2.0, 1.3);
+    orb(0xff6b5b, R * 0.5, 2.6, 1.6);
+    this.ring(pos, 0xffffff, R * 4.5, 0.9);
+    this.ring(pos, 0xff9f1c, R * 3.2, 1.2);
+    this.ring(pos, 0xff6b5b, R * 2.2, 1.5);
+
+    // A toy mushroom cloud: a stem and a cap that climb as they fade
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(R * 0.18, R * 0.32, R * 1.3, 18), glowMat(0xffb454));
+    stem.position.set(pos.x, pos.y + R * 0.9, pos.z);
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(R * 0.55, 22, 16), glowMat(0xfff1c2));
+    cap.scale.y = 0.75;
+    cap.position.set(pos.x, pos.y + R * 1.8, pos.z);
+    this.scene.add(stem, cap);
+    this.particles.push({ mesh: stem, vel: new THREE.Vector3(0, R * 0.5, 0), life: 2.2, maxLife: 2.2, grow: 0.5 });
+    this.particles.push({ mesh: cap, vel: new THREE.Vector3(0, R * 0.55, 0), life: 2.2, maxLife: 2.2, grow: 0.7 });
+
+    // The planet itself, in pieces
+    for (let n = 0; n < 40; n++) {
+      const size = R * (0.08 + Math.random() * 0.14);
+      const chunk = new THREE.Mesh(
+        new THREE.DodecahedronGeometry(size, 0),
+        new THREE.MeshStandardMaterial({ color, roughness: 0.6, flatShading: true })
+      );
+      chunk.position.copy(pos).add(new THREE.Vector3((Math.random() - 0.5) * R, (Math.random() - 0.5) * R, (Math.random() - 0.5) * R));
+      this.scene.add(chunk);
+      const dir = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.3, Math.random() - 0.5).normalize();
+      this.particles.push({
+        mesh: chunk,
+        vel: dir.multiplyScalar(14 + Math.random() * 30),
+        life: 2.2 + Math.random() * 1.2,
+        maxLife: 3.4,
+        shrink: true,
+        spin: (Math.random() - 0.5) * 8
+      });
+    }
+    this.spark(pos, 40, 46, 1.1);
+
+    // The big moment: flash, shake, slow motion, sound, and a score to match
+    this.shake = 2.4;
+    this.timeScale = 0.22;
+    this.nukeFlash();
+    this.audio?.explosion?.(2.2);
+    this.audio?.crash?.();
+    this.audio?.thump?.();
+    this.score += 5000 * this.multiplier;
+    this.multiplier = Math.min(8, this.multiplier + 2);
+    if (this.score > this.highScore) this.highScore = this.score;
+    this.toast('PLANET ANNIHILATED!');
+    this.wipe = { t: 0.5 };
+  }
+
+  /** The shockwave reaches the playfield and everything in it goes up. */
+  wipeField() {
+    for (let i = this.asteroids.length - 1; i >= 0; i--) this.destroyAsteroid(this.asteroids[i], true);
+    this.asteroids = [];
+    for (let i = this.enemies.length - 1; i >= 0; i--) this.destroyEnemy(this.enemies[i], true);
+    this.enemies = [];
+    [...this.dogfighters].forEach(d => this.destroyDog(d));
+    this.bolts.forEach(b => this.scene.remove(b.mesh));
+    this.bolts = [];
+    this.shake = Math.max(this.shake, 1.4);
+  }
+
+  nukeFlash() {
+    const el = document.getElementById('astro-nuke');
+    if (!el) return;
+    el.classList.remove('show');
+    void el.offsetWidth;
+    el.classList.add('show');
+  }
+
+  /** Camera shake: jitter the camera while `shake` is above zero, then put it back. */
+  updateShake(dt) {
+    const base = this._camBase;
+    if (!base) return;
+    if (this.shake > 0.02) {
+      this.shake *= Math.exp(-dt * 2.4);
+      this.camera.position.set((Math.random() - 0.5) * this.shake * 1.6, base.y + (Math.random() - 0.5) * this.shake * 1.2, base.z);
+      this.camera.lookAt(0, 0, -10);
+      this._shaking = true;
+    } else if (this._shaking) {
+      this._shaking = false;
+      this.shake = 0;
+      this.camera.position.set(0, base.y, base.z);
+      this.camera.lookAt(0, 0, -10);
+    }
+  }
+
+  // -------------------------------------------------------------------------
   // Effects and HUD messages
   // -------------------------------------------------------------------------
   spark(pos, count = 10, speed = 14, life = 0.5) {
@@ -1061,6 +1302,7 @@ export class AstroBlasterGame extends BaseGame {
 
   destroyAsteroid(asteroid, byLaser) {
     this.audio.explosion(0.7);
+    if (byLaser) this.addCharge(1.5);
     const pos = asteroid.mesh.position;
 
     if (byLaser) {
@@ -1090,6 +1332,7 @@ export class AstroBlasterGame extends BaseGame {
 
   destroyEnemy(enemy, byLaser) {
     this.audio.explosion(0.9);
+    if (byLaser) this.addCharge(8);
     const pos = enemy.mesh.position;
 
     if (byLaser) {
@@ -1150,6 +1393,15 @@ export class AstroBlasterGame extends BaseGame {
         <div class="astro-toast" id="astro-toast"></div>
         <div class="astro-flash" id="astro-flash"></div>
 
+        <div class="astro-nuke" id="astro-nuke"></div>
+
+        <!-- Atom bomb (jet mode only): charges up, then press B or tap -->
+        <button class="astro-bomb" id="astro-bomb" aria-label="Launch the atom bomb at a planet" hidden>
+          <span class="ab-name">ATOM BOMB</span>
+          <span class="ab-hint" id="astro-bomb-hint">B &middot; CHARGING</span>
+          <i class="ab-fill" id="astro-bomb-fill"></i>
+        </button>
+
         <!-- Transform button: works with a click or tap, or the T key -->
         <button class="astro-transform" id="astro-transform" aria-label="Transform between starfighter and jet">
           <span class="at-name" id="astro-form-name">STARFIGHTER</span>
@@ -1204,6 +1456,22 @@ export class AstroBlasterGame extends BaseGame {
       }
     }
     if (cdEl) cdEl.style.width = `${this.tf.active ? 0 : (1 - this.tf.cd / TRANSFORM_COOLDOWN) * 100}%`;
+
+    // Atom bomb button: only in jet mode; fills as it charges, glows red when armed
+    const bombBtn = document.getElementById('astro-bomb');
+    if (bombBtn) {
+      bombBtn.hidden = this.form !== 'jet';
+      const armed = this.bombCharge >= BOMB_COST;
+      bombBtn.classList.toggle('ready', armed);
+      const fill = document.getElementById('astro-bomb-fill');
+      if (fill) fill.style.width = `${this.bombCharge}%`;
+      const hint = document.getElementById('astro-bomb-hint');
+      if (hint) hint.innerHTML = this.bomb ? 'AWAY!' : armed ? 'B &middot; LAUNCH' : `B &middot; ${Math.floor(this.bombCharge)}%`;
+      if (!bombBtn._bound) {
+        bombBtn._bound = true;
+        bombBtn.addEventListener('click', () => this.launchBomb());
+      }
+    }
 
     this.bindTouchControls();
 
@@ -1278,6 +1546,7 @@ export class AstroBlasterGame extends BaseGame {
       { label: 'Fire (blasters / missiles)', keys: 'SPACE / MOUSE CLICK' },
       { label: 'Transform: starfighter <-> jet', keys: 'T KEY / TRANSFORM BUTTON' },
       { label: 'Jet mode', keys: 'Faster, with homing missiles' },
+      { label: 'Atom Bomb (jet, when charged)', keys: 'B KEY / BOMB BUTTON' },
       { label: 'Touch Screens', keys: 'Left stick to fly, hold FIRE to shoot' },
       { label: 'Toggle Floodlight', keys: 'F or L KEY' },
       { label: 'Hyperspace Drift', keys: 'Automatic continuous forward drive' },
@@ -1294,6 +1563,8 @@ export class AstroBlasterGame extends BaseGame {
     this.dogfighters = [];
     this.bolts = [];
     this.missiles = [];
+    if (this.bomb) this.scene.remove(this.bomb.mesh);
+    if (this.lockRing) this.scene.remove(this.lockRing);
     this.lasers.forEach(l => this.scene.remove(l.mesh));
     this.asteroids.forEach(a => this.scene.remove(a.mesh));
     if (this.enemies) this.enemies.forEach(e => this.scene.remove(e.mesh));
@@ -1305,6 +1576,8 @@ export class AstroBlasterGame extends BaseGame {
     // The camera is shared with other games: put its FOV back
     this._touch.x = this._touch.y = 0;
     this._touchFire = false;
+    this.shake = 0;
+    this.timeScale = 1;
     this.camera.fov = 55;
     this.camera.position.set(0, 10, 28);
     this.camera.updateProjectionMatrix();

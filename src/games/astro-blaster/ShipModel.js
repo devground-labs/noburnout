@@ -262,3 +262,32 @@ export function createDogfighterMesh({ ace = false } = {}) {
   group.userData.mats = mats;
   return group;
 }
+
+/** The atom bomb: a fat navy teardrop with a yellow warning band and coral tail fins. Nose toward +Z. */
+export function createBombMesh() {
+  const group = new THREE.Group();
+  const navy = new THREE.MeshStandardMaterial({ color: 0x1b2150, metalness: 0.3, roughness: 0.4 });
+  const yellow = new THREE.MeshStandardMaterial({ color: 0xffd23f, metalness: 0.1, roughness: 0.4 });
+  const coral = new THREE.MeshStandardMaterial({ color: 0xff6b5b, metalness: 0.1, roughness: 0.45 });
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.8, 20, 16), navy);
+  body.scale.set(1, 1, 1.7);
+  group.add(body);
+
+  const band = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.12, 10, 28), yellow);
+  band.position.z = 0.2;
+  group.add(band);
+
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 10), yellow);
+  nose.position.z = 1.35;
+  group.add(nose);
+
+  for (let i = 0; i < 4; i++) {
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.9, 0.9), coral);
+    fin.position.z = -1.2;
+    fin.rotation.z = (i * Math.PI) / 2;
+    fin.translateY(0.55);
+    group.add(fin);
+  }
+  return group;
+}

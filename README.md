@@ -22,7 +22,7 @@ A high-performance, modular **3D Web Game Framework** built on **Three.js**, **C
 ## 🕹️ Games
 
 1. **Cyber Tanks 3D** (`cyber-tanks`): tactical tank duels with destructible cover. Modes: 1P vs AI, 2P local duel, Practice target range. A match is 3 rounds.
-2. **Astro-Blaster 3D** (`astro-blaster`): dodge and blast asteroid fields, then take on AI fighter planes in a dogfight. Press T to transform between the rapid-fire starfighter and a faster jet with homing missiles. Shoot down rivals to patch your shields. Modes: Arcade Survival, Practice Drift.
+2. **Astro-Blaster 3D** (`astro-blaster`): dodge and blast asteroid fields, then take on AI fighter planes in a dogfight. Press T to transform between the rapid-fire starfighter and a faster jet with homing missiles. Shoot down rivals to patch your shields, and in jet form charge up an atom bomb (B) to annihilate a planet and wipe the screen. Modes: Arcade Survival, Practice Drift.
 3. **Overdrive** (`overdrive`): a sunny toy-track highway racer with winding roads (each turn pushes you toward the outside edge, so steer into it). Modes: Endless (dodge traffic and barricades as the speed climbs) and Rush Race (a Road Rash-style race around a fixed circuit, with a minimap, against seven AI riders: bonk them aside, boost past the pack and beat them to the finish line).
 4. **Cyber-Runner** (`cyber-runner`): jump and double jump over obstacles and grab gems. 1 Player is endless with rising difficulty, 2 Players is a head-to-head race.
 5. **Pinball** (`pinball`): a classic 2D table with two flippers, pop bumpers, slingshots, side orbits with spinners, a saucer, drop targets and rollover lanes. Works with keyboard, mouse and touch. Modes: Classic (3 balls), Zen (endless).
