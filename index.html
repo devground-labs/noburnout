@@ -30,6 +30,8 @@
           <a href="#" data-scroll="lp-contribute">Contribute</a>
         </nav>
         <div class="landing-header-actions">
+          <button class="nav-btn lp-pill" id="lp-board-btn" title="Leaderboards" type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M9 20h6M10 17h4"/></svg><span class="lp-pill-label">Leaderboards</span></button>
+          <button class="nav-btn lp-pill primary" id="lp-account-btn" title="Sign in" type="button" hidden><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg><span class="lp-pill-label" id="lp-account-label">Sign in</span></button>
           <button class="nav-btn icon-btn" id="landing-sound-toggle" title="Toggle Sound" aria-label="Toggle sound"><svg class="ic ic-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg><svg class="ic ic-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4zM22 9l-6 6M16 9l6 6"/></svg></button>
           <button class="nav-btn icon-btn" id="landing-fullscreen" title="Toggle Fullscreen" aria-label="Toggle fullscreen"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
         </div>
@@ -42,7 +44,7 @@
         <div class="lp-hero-copy" id="lp-hero-copy">
           <span class="lp-eyebrow"><i></i>Free · Instant · No sign-up</span>
           <h1 class="lp-title" id="lp-title">Level up your<br><em>coffee break.</em></h1>
-          <p class="lp-lead">Arcade classics, brain puzzles and a few things that go boom. Pick one, play for five minutes, and get back to the build feeling sharper. No installs, no accounts, no streaks.</p>
+          <p class="lp-lead">Arcade classics, brain puzzles and a few things that go boom. Pick one, play for five minutes, and get back to the build feeling sharper. No installs, no required accounts, no streaks.</p>
           <div class="lp-cta">
             <button class="lp-btn primary" data-scroll="lp-games" type="button">Play now
               <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M10 3v12m0 0-5-5m5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -57,7 +59,7 @@
         <div><dt id="lp-game-count">4</dt><dd>Games</dd></div>
         <div><dt>1–2</dt><dd>Players</dd></div>
         <div id="lp-visitors" title="Counts each visitor once a day. We keep only an anonymous hash of the IP for 24 hours to avoid double counting."><dt>0</dt><dd>Installs</dd></div>
-        <div><dt>0</dt><dd>Accounts</dd></div>
+        <div><dt>0</dt><dd>Accounts needed</dd></div>
       </dl>
 
       <div class="lp-marquee" aria-hidden="true"><div class="lp-marquee-track" id="lp-marquee-track"></div></div>
@@ -164,6 +166,8 @@
       <button class="nav-btn" id="btn-open-help" title="Game controls">
         <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v12H3zM7 10h.01M11 10h.01M15 10h.01M19 10h.01M7 14h10"/></svg><span class="btn-label">Controls</span>
       </button>
+      <button class="nav-btn" id="btn-open-board" title="Leaderboard for this game"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M9 20h6M10 17h4"/></svg><span class="btn-label">Leaderboard</span></button>
+      <button class="nav-btn icon-btn" id="btn-account" title="Sign in" aria-label="Account" hidden><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></button>
       <a class="nav-btn" id="btn-report-issue" href="https://github.com/devground-labs/noburnout/issues/new?template=bug_report.yml" target="_blank" rel="noopener noreferrer" title="Report an issue with this game">
         <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8h8v7a4 4 0 0 1-8 0zM9 5l1.5 2M15 5l-1.5 2M4 12h4M16 12h4M5 18l3-2M19 18l-3-2"/></svg><span class="btn-label">Report issue</span>
       </a>
@@ -193,6 +197,37 @@
       <div class="games-grid" id="games-list-grid">
         <!-- Rendered dynamically by UIManager -->
       </div>
+    </div>
+  </div>
+
+  <!-- Leaderboard Modal -->
+  <div class="modal-overlay" id="modal-board">
+    <div class="modal-window modal-window-sm">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">Leaderboards</h2>
+          <p class="modal-subtitle" id="board-sub">Best scores from signed-in players</p>
+        </div>
+        <button class="modal-close-btn" id="btn-close-board" aria-label="Close">&times;</button>
+      </div>
+      <div class="lb-tabs" id="lb-tabs" role="tablist" aria-label="Leaderboards"></div>
+      <ol class="lb-list" id="lb-list"></ol>
+      <div class="lb-me" id="lb-me"></div>
+      <p class="lb-foot" id="lb-foot"></p>
+    </div>
+  </div>
+
+  <!-- Account Modal (sign in, nickname, sign out) -->
+  <div class="modal-overlay" id="modal-account">
+    <div class="modal-window modal-window-sm">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" id="account-title">Sign in</h2>
+          <p class="modal-subtitle" id="account-sub"></p>
+        </div>
+        <button class="modal-close-btn" id="btn-close-account" aria-label="Close">&times;</button>
+      </div>
+      <div id="account-body"></div>
     </div>
   </div>
 

@@ -20,5 +20,13 @@
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     }
+  ],
+  "rewrites": [
+    { "source": "/api/auth/:op", "destination": "/api/account?op=:op" },
+    { "source": "/api/me", "destination": "/api/account?op=me" },
+    { "source": "/api/me/nickname", "destination": "/api/account?op=nickname" },
+    { "source": "/api/me/delete", "destination": "/api/account?op=delete" },
+    { "source": "/api/scores", "destination": "/api/account?op=scores" },
+    { "source": "/api/leaderboard", "destination": "/api/account?op=leaderboard" }
   ]
 }

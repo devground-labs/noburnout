@@ -869,6 +869,7 @@ export class CyberRunnerGame extends BaseGame {
       localStorage.setItem('cyberRunnerBest', String(this.best));
     }
     h.newBest.style.display = isBest ? 'block' : 'none';
+    if (this.numPlayers === 1) this.engine.account?.report('cyber-runner/1 Player', a.score);
     this.updateStatsUI();
     this.showOverlay('over');
     this.sfx('over');

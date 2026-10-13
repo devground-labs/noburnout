@@ -328,6 +328,7 @@ export class UIManager {
   }
 
   updateActiveGameInfo(entry) {
+    this.onGameChange?.(entry);
     if (this.titleEl) this.titleEl.textContent = entry.name;
     if (this.badgeEl) this.badgeEl.textContent = entry.badge;
 
