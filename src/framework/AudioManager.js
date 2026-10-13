@@ -9,8 +9,13 @@ export class AudioManager {
     this.enabled = true;
     this.volume = 0.7;
     this._initOnGesture = this._initOnGesture.bind(this);
-    window.addEventListener('pointerdown', this._initOnGesture, { once: true });
-    window.addEventListener('keydown', this._initOnGesture, { once: true });
+    // Mobile browsers only allow audio to start from certain gestures (touchend/click, not pointerdown),
+    // and a context can be suspended again later. Keep trying on every gesture until it is really running.
+    this._unlockEvents = ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'click', 'keydown'];
+    this._unlockEvents.forEach(ev => window.addEventListener(ev, this._initOnGesture, { capture: true, passive: true }));
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) this._resume();
+    });
   }
 
   _initContext() {
@@ -21,6 +26,10 @@ export class AudioManager {
       this.masterGain = this.ctx.createGain();
       this.masterGain.gain.setValueAtTime(this.enabled ? this.volume : 0, this.ctx.currentTime);
       this.masterGain.connect(this.ctx.destination);
+      this.ctx.addEventListener?.('statechange', () => {
+        if (this.ctx.state === 'running') this._removeUnlock();
+        else this._addUnlock();
+      });
     } catch (e) {
       console.warn('Web Audio not supported:', e);
     }
@@ -28,9 +37,43 @@ export class AudioManager {
 
   _initOnGesture() {
     this._initContext();
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+    this._resume();
+  }
+
+  _resume() {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    if (ctx.state !== 'running') {
+      // 'interrupted' is iOS Safari's name for a context paused by a call or the lock screen
+      ctx.resume?.().then(() => this._primeIOS()).catch(() => {});
     }
+    if (ctx.state === 'running') this._removeUnlock();
+  }
+
+  /** iOS only starts producing sound after something has been played inside a gesture. */
+  _primeIOS() {
+    if (this._primed || !this.ctx) return;
+    this._primed = true;
+    try {
+      const src = this.ctx.createBufferSource();
+      src.buffer = this.ctx.createBuffer(1, 1, 22050);
+      src.connect(this.ctx.destination);
+      src.start(0);
+    } catch {
+      // priming is best-effort
+    }
+  }
+
+  _removeUnlock() {
+    if (this._unlocked) return;
+    this._unlocked = true;
+    this._unlockEvents.forEach(ev => window.removeEventListener(ev, this._initOnGesture, { capture: true }));
+  }
+
+  _addUnlock() {
+    if (!this._unlocked) return;
+    this._unlocked = false;
+    this._unlockEvents.forEach(ev => window.addEventListener(ev, this._initOnGesture, { capture: true, passive: true }));
   }
 
   toggleSound() {
