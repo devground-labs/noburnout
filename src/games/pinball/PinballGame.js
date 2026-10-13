@@ -639,6 +639,7 @@ export class PinballGame extends BaseGame {
       localStorage.setItem('pinball_highscore', String(this.highScore));
       this.audio.victory();
     }
+    if (!this.isZen) this.engine.account?.report('pinball/Classic', this.score);
     this.setOverlay(true);
   }
 

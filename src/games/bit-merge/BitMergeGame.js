@@ -85,6 +85,7 @@ export class BitMergeGame extends BaseGame {
     this._timers = [];
     this._nextId = 1;
     this._swipe = null;
+    this.reported = 0; // the best score of this run already sent to the leaderboard
   }
 
   // -------------------------------------------------------------------------
@@ -276,7 +277,17 @@ export class BitMergeGame extends BaseGame {
     this.refresh();
   }
 
+  /** Send this run's score to the leaderboard (once per improvement). */
+  reportScore() {
+    if (this.score > this.reported) {
+      this.reported = this.score;
+      this.engine.account?.report(`bit-merge/${this.mode}`, this.score);
+    }
+  }
+
   newGame(silent = false) {
+    if (this.root) this.reportScore(); // the run that is ending
+    this.reported = 0;
     this._timers.forEach(clearTimeout);
     this._timers = [];
     this.clearTiles();
@@ -402,10 +413,12 @@ export class BitMergeGame extends BaseGame {
     const top = Math.max(...this.tiles.map(t => t.v));
     if (!this.won && !this.keepGoing && top >= GOAL) {
       this.won = true;
+      this.reportScore();
       this.showPanel(`Shipped! ${show(GOAL, this.format)}`, `Score ${this.score.toLocaleString()} · ${this.moves} moves`, true);
       this.audio?.victory?.();
     } else if (!this.canMove()) {
       this.over = true;
+      this.reportScore();
       this.persist();
       this.showPanel('No moves left', `Score ${this.score.toLocaleString()} · best tile ${show(top, this.format)}`, false);
       this.audio?.crash?.();

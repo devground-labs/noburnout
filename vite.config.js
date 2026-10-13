@@ -6,7 +6,8 @@ export default defineConfig({
     port: Number(process.env.PORT) || 5173,
     open: false,
     // Local visitor-counter API: run `go run ./cmd/dev` (needs REDIS_URL)
-    proxy: { '/api': 'http://localhost:8787' }
+    // Keep the browser's Host header so sign-in redirects come back to the site, not to :8787
+    proxy: { '/api': { target: 'http://localhost:8787', changeOrigin: false } }
   },
   build: {
     target: 'esnext',

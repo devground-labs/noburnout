@@ -25,6 +25,8 @@ import { Engine } from './framework/Engine.js';
 import { UIManager } from './framework/UIManager.js';
 import { showVisitorCount } from './framework/visitors.js';
 import { initLandingMotion } from './framework/landingMotion.js';
+import { Account } from './framework/account.js';
+import { initAccountUI } from './framework/accountUI.js';
 import { CyberTanksGame } from './games/cyber-tanks/CyberTanksGame.js';
 import { AstroBlasterGame } from './games/astro-blaster/AstroBlasterGame.js';
 import { OverdriveGame } from './games/overdrive/OverdriveGame.js';
@@ -57,6 +59,13 @@ window.addEventListener('DOMContentLoaded', async () => {
   engine.registry.register(CyberTanksGame);
 
   initLandingMotion();
+
+  // Optional Google sign-in and the leaderboards (the games work without them)
+  const account = new Account();
+  account.ui = ui;
+  engine.account = account;
+  const accountUI = initAccountUI({ engine, account, ui });
+  account.load().then(() => accountUI.afterLoad());
 
   // Start with Landing Page and 3D ambient cyber grid lobby
   ui.showLandingPage();

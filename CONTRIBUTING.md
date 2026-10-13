@@ -50,7 +50,8 @@ Games that own their own scene, camera and HUD (like Overdrive and Cyber-Runner)
 ## Guidelines
 
 - **No new third-party requests.** The site ships a strict Content-Security-Policy (`vercel.json`) that only allows its own origin. Bundle fonts, models and sounds with the app. Sounds are synthesized with Web Audio, so there are no audio files to add.
-- **No tracking or personal data.** Do not add cookies, extra analytics or anything that collects user data. The visitor counter stores only a keyed hash of the IP for 24 hours; keep it that way.
+- **No tracking or personal data.** Do not add tracking cookies, extra analytics or anything that collects user data. The visitor counter stores only a keyed hash of the IP for 24 hours; keep it that way.
+- **Optional sign-in stays minimal.** The only cookie is the signed session cookie that keeps a player signed in to the leaderboards, and sign-in must never be required to play. The server stores only an anonymous ID, a chosen nickname and best scores (no email, name or photo), and players can delete it. See the "Sign in and leaderboards" section of the README before changing it.
 - **Keep it accessible and responsive.** Check the HUD at phone width and keep text readable.
 - **Match the look.** Use the shared design tokens and the existing navbar and modal styles in `src/style.css`.
 - **No secrets.** Never commit keys, tokens or credentials.

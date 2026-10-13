@@ -1,6 +1,6 @@
 # NoBurnout
 
-Short, satisfying browser games for software engineers in the age of AI. Take a few minutes between prompts, builds and code reviews, then come back sharper. No installs, no accounts, no streaks.
+Short, satisfying browser games for software engineers in the age of AI. Take a few minutes between prompts, builds and code reviews, then come back sharper. No installs, no required accounts, no streaks.
 
 Under the hood it is a 3D web game framework:
 
@@ -133,6 +133,40 @@ npm install
 # 2. Run local development server
 npm run dev
 ```
+
+---
+
+## 🏆 Sign in and leaderboards (optional)
+
+Players can sign in with Google to put their best scores on per-game leaderboards. **Signing in is never required to play.** Scores earned before signing in are kept in the browser and sent once the player signs in and picks a nickname.
+
+- **Boards:** Pinball (Classic), Cyber-Runner (1 Player), Overdrive (Endless score, Rush Race time), Bit Merge (Classic, Roomy). Add a board in [`account/board.go`](account/board.go) and in [`src/framework/account.js`](src/framework/account.js).
+- **How sign-in works:** Google's server-side OAuth flow runs in the Go API ([`account`](account), entry point [`api/account.go`](api/account.go)). No Google script is loaded on the site, so the Content-Security-Policy is unchanged. Only the `openid` scope is requested.
+- **What is stored (Redis):** an anonymous ID derived from the Google account, the nickname the player chose, and their best score per board. **No email, name or photo.** A signed, HttpOnly, SameSite=Lax session cookie keeps the player signed in for 30 days. Players can **delete their data** (nickname and every score) from the account dialog.
+- **Fair play:** scores are submitted by the browser, so they cannot be fully trusted. The server limits each board to a plausible range, keeps only each player's best, and rate-limits submissions. A determined cheater can still fake a score.
+- **If it is not configured**, the sign-in buttons stay hidden and the games work as before (leaderboards stay readable if Redis is available).
+
+**Set it up**
+
+1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials) create an **OAuth client ID** (type *Web application*). Add this **authorized redirect URI** for each site origin: `https://YOUR-DOMAIN/api/auth/callback` (and `http://localhost:5173/api/auth/callback` for local testing).
+2. Set these environment variables in Vercel (see [`.env.example`](.env.example)):
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `GOOGLE_CLIENT_ID` | yes | OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | yes | OAuth client secret |
+| `SESSION_SECRET` | yes | at least 32 random characters, signs session cookies |
+| `PUBLIC_URL` | no | site origin for the redirect URI (defaults to the request's host) |
+| `REDIS_URL` | yes | shared with the visitor counter |
+
+**Try it locally without Google or Redis**
+
+```bash
+DEV_MEMORY=1 DEV_FAKE_LOGIN=1 go run ./cmd/dev   # API on :8787 with an in-memory Redis, demo players and a fake login
+npm run dev                                      # "Sign in" signs you in as a local dev user
+```
+
+`DEV_MEMORY` and `DEV_FAKE_LOGIN` are read only by `cmd/dev`, never by the production function.
 
 ---
 

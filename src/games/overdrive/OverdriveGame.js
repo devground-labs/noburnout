@@ -754,6 +754,7 @@ export class OverdriveGame extends BaseGame {
     this.combo = 0;
 
     const finalScore = Math.floor(this.score);
+    this.engine.account?.report('overdrive/Endless', finalScore);
     this.isNewBest = finalScore > this.highScore;
     if (this.isNewBest) {
       this.highScore = finalScore;
@@ -1499,6 +1500,7 @@ export class OverdriveGame extends BaseGame {
     R.position = R.finishOrder.length + 1;
     R.finishOrder.push('player');
     R.doneTimer = 0;
+    this.engine.account?.report('overdrive/Rush Race', Math.round(R.finishTime * 1000));
     this.showToast('FINISH!');
     this.audio?.[R.position <= 3 ? 'victory' : 'chime']?.();
   }
