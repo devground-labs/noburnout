@@ -73,6 +73,7 @@ export class CyberTanksGame extends BaseGame {
 
     // Keyboard state
     this.keys = {};
+    this.stick = null; // touch steering: { x, y, mag } in screen space, or null
     this._keyDownHandler = null;
     this._keyUpHandler = null;
 
@@ -1420,6 +1421,7 @@ export class CyberTanksGame extends BaseGame {
   start(mode = '1P (vs AI)') {
     super.start(mode);
     this.initAudio();
+    this.stick = null;
 
     if (mode === 'Practice') {
       this.enterPracticeMode();
@@ -1504,8 +1506,14 @@ export class CyberTanksGame extends BaseGame {
     this.spawnObstacles();
 
     // Reset tanks
-    this.p1.reset({ x: -16, z: 0 }, Math.PI / 2);
-    this.p2.reset({ x: 16, z: 0 }, -Math.PI / 2);
+    if (this.isPortrait()) {
+      // Tall screens: face off along the long axis so both tanks stay on screen
+      this.p1.reset({ x: 0, z: 17 }, Math.PI);
+      this.p2.reset({ x: 0, z: -17 }, 0);
+    } else {
+      this.p1.reset({ x: -16, z: 0 }, Math.PI / 2);
+      this.p2.reset({ x: 16, z: 0 }, -Math.PI / 2);
+    }
     this.aiReverseTimer = 0;
     this.aiWaypoint = null;
     this.aiStuckTimer = 0;
@@ -1738,11 +1746,50 @@ export class CyberTanksGame extends BaseGame {
     window.addEventListener('blur', this._blurHandler);
   }
 
+  isPortrait() {
+    return !!this.camera && this.camera.aspect < 1;
+  }
+
+  /** Angle from P1's heading to the enemy (radians, -PI..PI), or null when there is no live enemy. */
+  bearingToEnemy() {
+    if (this.p2.isDead || this.p1.isDead) return null;
+    if (this.gameMode !== '1P' && this.gameMode !== '2P') return null;
+    let d = Math.atan2(this.p2.x - this.p1.x, this.p2.z - this.p1.z) - this.p1.rotation;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    return d;
+  }
+
+  /** Touch fire: snap the barrel onto the enemy when it is roughly ahead, then shoot. */
+  fireTouch() {
+    if (this.matchOver) return;
+    const d = this.bearingToEnemy();
+    if (d !== null && Math.abs(d) < 1.2) this.p1.rotation += d;
+    const m = this.p1.fireMissile();
+    if (m) this.activeMissiles.push(m);
+  }
+
   processInputs(dt) {
     if (this.matchOver) return;
 
+    // Touch: the stick says where to go on screen; the tank turns toward it and drives
+    if (this.stick) {
+      const p1 = this.p1;
+      const want = Math.atan2(this.stick.x, this.stick.y);
+      let diff = want - p1.rotation;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      const turn = p1.TURN_SPEED * 1.7 * dt;
+      p1.rotation += Math.max(-turn, Math.min(turn, diff));
+      const align = Math.max(0, Math.cos(diff));
+      const target = p1.MAX_SPEED * this.stick.mag * (align > 0.35 ? align : 0);
+      p1.speed += Math.max(-p1.DECEL * dt, Math.min(p1.ACCEL * dt, target - p1.speed));
+    }
+
     // Player 1: WASD
-    if (this.keys['KeyW']) {
+    if (this.stick) {
+      // driven by the touch stick above
+    } else if (this.keys['KeyW']) {
       this.p1.speed = Math.min(this.p1.MAX_SPEED, this.p1.speed + this.p1.ACCEL * dt);
     } else if (this.keys['KeyS']) {
       this.p1.speed = Math.max(-this.p1.MAX_SPEED * 0.6, this.p1.speed - this.p1.DECEL * dt);
@@ -1750,13 +1797,13 @@ export class CyberTanksGame extends BaseGame {
       this.p1.speed = THREE.MathUtils.lerp(this.p1.speed, 0, dt * 6.0);
     }
 
-    if (this.keys['KeyA']) {
+    if (!this.stick && this.keys['KeyA']) {
       this.p1.rotation += this.p1.TURN_SPEED * dt;
     }
-    if (this.keys['KeyD']) {
+    if (!this.stick && this.keys['KeyD']) {
       this.p1.rotation -= this.p1.TURN_SPEED * dt;
     }
-    if (!this.keys['KeyA'] && !this.keys['KeyD']) {
+    if (!this.stick && !this.isTouch && !this.keys['KeyA'] && !this.keys['KeyD']) {
       const d = this.getAssistDiff();
       if (d !== null && Math.abs(d) < 0.5 && Math.abs(d) > 0.02) {
         this.p1.rotation += Math.sign(d) * Math.min(Math.abs(d), this.p1.TURN_SPEED * 0.6 * dt);
@@ -1880,7 +1927,9 @@ export class CyberTanksGame extends BaseGame {
     this.checkRoundEnd();
 
     // Camera positioning modes
-    if (this.cameraMode === 0) {
+    if (this.isPortrait() && this.cameraMode !== 2) {
+      this.updateFitCamera();
+    } else if (this.cameraMode === 0) {
       // Tactical Isometric (smooth center tracking)
       const midX = this.gameMode === 'PRACTICE' ? this.p1.x * 0.5 : (this.p1.x + this.p2.x) / 2;
       const midZ = this.gameMode === 'PRACTICE' ? this.p1.z * 0.5 : (this.p1.z + this.p2.z) / 2;
@@ -1918,6 +1967,23 @@ export class CyberTanksGame extends BaseGame {
   // =========================================================================
   // HUD HTML & Realtime Binding (Exact matched with tanks.html)
   // =========================================================================
+  /** Tall screens: hover above the action and pull back just far enough to keep the tanks in frame. */
+  updateFitCamera() {
+    const battle = this.gameMode !== 'PRACTICE' && !this.p2.isDead;
+    const a = this.p1;
+    const b = battle ? this.p2 : this.p1;
+    const cx = (a.x + b.x) / 2;
+    const cz = (a.z + b.z) / 2;
+    const hz = Math.max(Math.abs(a.z - b.z) / 2 + 8, 14);
+    const hx = Math.max(Math.abs(a.x - b.x) / 2 + 6, 8);
+    const half = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
+    const dist = THREE.MathUtils.clamp(Math.max(hz / (half * 0.9), hx / (half * this.camera.aspect * 0.9), 22), 22, 70);
+    this.camera.position.x = THREE.MathUtils.lerp(this.camera.position.x, cx, 0.1);
+    this.camera.position.y = THREE.MathUtils.lerp(this.camera.position.y, dist * 0.94, 0.08);
+    this.camera.position.z = THREE.MathUtils.lerp(this.camera.position.z, cz + dist * 0.34, 0.08);
+    this.camera.lookAt(cx, 0, cz);
+  }
+
   getHUDHtml() {
     return `
       <div class="tank-ui-layer">
@@ -2035,8 +2101,10 @@ export class CyberTanksGame extends BaseGame {
 
           <!-- Mobile On-Screen Controls -->
           <div class="tank-mobile-controls interactive">
-            <div class="tank-joystick" id="tankJoystick"><div class="tank-joystick-knob" id="tankJoystickKnob"></div></div>
             <button class="tank-touch-btn fire-btn" id="mP1Fire" style="border-radius: 50%;"><span id="mP1FireLabel">FIRE</span></button>
+          </div>
+          <div class="tank-stick-zone interactive" id="tankStickZone">
+            <div class="tank-joystick" id="tankJoystick"><div class="tank-joystick-knob" id="tankJoystickKnob"></div></div>
           </div>
 
           <!-- Player 2 Controls Card -->
@@ -2253,9 +2321,8 @@ export class CyberTanksGame extends BaseGame {
       helpModal._bound = true;
       this._openHelp = (first) => {
         const rows = this.isTouch
-          ? [['Drive & steer', 'Drag the left stick: up/down to move, left/right to turn'],
-             ['Fire', 'Tap the FIRE button. The ring shows reload progress'],
-             ['Aim assist', 'Toggle it in the top bar to auto-line-up shots'],
+          ? [['Drive', 'Drag anywhere on the left side. The tank drives the way you drag'],
+             ['Fire', 'Tap FIRE: it locks onto the enemy when they are roughly ahead. The ring shows reload'],
              ['Win', 'Take out the enemy tank first. Best of 3 rounds']]
           : [['Drive & steer', 'W A S D'], ['Fire', 'Space or F'], ['Win', 'Take out the enemy tank first. Best of 3 rounds']];
         helpList.innerHTML = rows.map(r => `<div class="tank-help-row"><b>${r[0]}</b><span>${r[1]}</span></div>`).join('');
@@ -2320,60 +2387,63 @@ export class CyberTanksGame extends BaseGame {
       });
     }
 
-    // Touch controls
+    // Touch controls: a floating stick that appears under your thumb anywhere in the left zone
+    const zone = document.getElementById('tankStickZone');
     const stick = document.getElementById('tankJoystick');
     const knob = document.getElementById('tankJoystickKnob');
-    if (stick && !stick._bound) {
-      stick._bound = true;
+    if (zone && stick && !zone._bound) {
+      zone._bound = true;
       let activeId = null;
-      const setKeys = (nx, ny) => {
-        const dead = 0.28;
-        this.keys['KeyW'] = ny < -dead;
-        this.keys['KeyS'] = ny > dead;
-        this.keys['KeyA'] = nx < -dead;
-        this.keys['KeyD'] = nx > dead;
+      let ox = 0;
+      let oy = 0;
+      const RADIUS = 56;
+      const place = (x, y) => {
+        const r = zone.getBoundingClientRect();
+        stick.style.left = `${x - r.left - stick.offsetWidth / 2}px`;
+        stick.style.top = `${y - r.top - stick.offsetHeight / 2}px`;
+        stick.style.bottom = 'auto';
       };
       const move = (e) => {
-        const r = stick.getBoundingClientRect();
-        const radius = r.width / 2;
-        let dx = e.clientX - (r.left + radius);
-        let dy = e.clientY - (r.top + radius);
+        let dx = e.clientX - ox;
+        let dy = e.clientY - oy;
         const len = Math.hypot(dx, dy);
-        if (len > radius) { dx = dx / len * radius; dy = dy / len * radius; }
+        if (len > RADIUS) { dx = dx / len * RADIUS; dy = dy / len * RADIUS; }
         knob.style.transform = `translate(${dx}px, ${dy}px)`;
-        setKeys(dx / radius, dy / radius);
+        const mag = Math.min(1, len / RADIUS);
+        this.stick = mag > 0.18 ? { x: dx / (len || 1), y: dy / (len || 1), mag: Math.min(1, (mag - 0.18) / 0.5) } : null;
       };
       const release = (e) => {
         if (e.pointerId !== activeId) return;
         activeId = null;
+        this.stick = null;
         knob.style.transform = '';
-        setKeys(0, 0);
+        stick.classList.remove('active');
+        stick.style.left = stick.style.top = stick.style.bottom = '';
       };
-      stick.addEventListener('pointerdown', (e) => {
+      zone.addEventListener('pointerdown', (e) => {
         if (activeId !== null) return;
         e.preventDefault();
         activeId = e.pointerId;
-        try { stick.setPointerCapture(e.pointerId); } catch (_) {}
+        try { zone.setPointerCapture(e.pointerId); } catch (_) {}
         this.initAudio();
+        ox = e.clientX;
+        oy = e.clientY;
+        place(ox, oy);
+        stick.classList.add('active');
         move(e);
       });
-      stick.addEventListener('pointermove', (e) => { if (e.pointerId === activeId) move(e); });
-      stick.addEventListener('pointerup', release);
-      stick.addEventListener('pointercancel', release);
+      zone.addEventListener('pointermove', (e) => { if (e.pointerId === activeId) move(e); });
+      zone.addEventListener('pointerup', release);
+      zone.addEventListener('pointercancel', release);
     }
 
     const mFire = document.getElementById('mP1Fire');
     if (mFire && !mFire._bound) {
       mFire._bound = true;
-      mFire.addEventListener('touchstart', (e) => {
+      mFire.addEventListener('pointerdown', (e) => {
         e.preventDefault();
         this.initAudio();
-        if (!this.matchOver) {
-          const d = this.getAssistDiff();
-          if (d !== null && Math.abs(d) < 0.35) this.p1.rotation += d;
-          const m = this.p1.fireMissile();
-          if (m) this.activeMissiles.push(m);
-        }
+        this.fireTouch();
       });
     }
   }

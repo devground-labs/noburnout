@@ -2456,16 +2456,32 @@ a.nav-btn { text-decoration: none; }
 }
 
 /* Cyber Tanks: virtual joystick + damage flash */
-.tank-joystick {
-  position: relative;
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background: rgba(12, 17, 32, 0.5);
-  border: 1px solid rgba(148, 163, 184, 0.3);
+.tank-stick-zone {
+  display: none;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 58%;
+  height: 52%;
   touch-action: none;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
+.tank-joystick {
+  position: absolute;
+  left: 24px;
+  bottom: 28px;
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  background: rgba(12, 17, 32, 0.35);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.tank-joystick.active { opacity: 1; background: rgba(12, 17, 32, 0.5); }
 .tank-joystick-knob {
   position: absolute;
   left: 50%;
@@ -2478,7 +2494,7 @@ a.nav-btn { text-decoration: none; }
   border: 1px solid #38bdf8;
   pointer-events: none;
 }
-.tank-mobile-controls { align-items: flex-end; }
+.tank-mobile-controls { align-items: flex-end; justify-content: flex-end; }
 .tank-mobile-controls .fire-btn { width: 92px !important; height: 92px !important; touch-action: none; }
 .tank-damage-flash {
   position: absolute;
@@ -2635,4 +2651,12 @@ a.nav-btn { text-decoration: none; }
 @media (prefers-reduced-motion: reduce) {
   .bm-tile { transition: none; }
   .bm-tile.new, .bm-tile.merged { animation: none; }
+}
+
+/* Cyber Tanks on touch: drag-anywhere stick + one big FIRE button, no desktop-only controls */
+@media (pointer: coarse), (max-width: 840px) {
+  .tank-stick-zone { display: block; }
+  .tank-mobile-controls { position: absolute; right: 18px; bottom: 22px; width: auto; margin: 0; }
+  .tank-mobile-controls .fire-btn { width: 104px !important; height: 104px !important; font-size: 0.85rem; }
+  #btnTogglePractice, #btnAimAssist, #btnCamView { display: none !important; }
 }
