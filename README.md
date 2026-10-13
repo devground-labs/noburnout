@@ -28,6 +28,7 @@ A high-performance, modular **3D Web Game Framework** built on **Three.js**, **C
 5. **Pinball** (`pinball`): a classic 2D table with two flippers, pop bumpers, slingshots, side orbits with spinners, a saucer, drop targets and rollover lanes. Works with keyboard, mouse and touch. Modes: Classic (3 balls), Zen (endless).
 6. **Maze Paint** (`maze-paint`): a brain puzzle. Drag one unbroken path through every box of a patterned maze exactly once. Fifty levels of rising difficulty that unlock in order, with keyboard, mouse and touch support. Progress and best times are saved locally.
 7. **Pattern Recall** (`pattern-recall`): a memory puzzle. A pattern of boxes lights up, then vanishes, and you rebuild it from memory. Forty levels that get hard fast, with bigger grids, more boxes and less time. They unlock in order, with keyboard, mouse and touch support. Progress is saved locally.
+8. **Bit Merge** (`bit-merge`): a 2048-style merge puzzle. Slide the tiles, merge equal powers of two and ship 2048, then keep going. Flip the numbers between decimal, hex and binary. Modes: Classic (4x4) and Roomy (5x5). Swipe or arrow keys, with undo; your board and best score are saved locally.
 
 ---
 

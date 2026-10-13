@@ -32,6 +32,7 @@ import { CyberRunnerGame } from './games/cyber-runner/CyberRunnerGame.js';
 import { PinballGame } from './games/pinball/PinballGame.js';
 import { MazePaintGame } from './games/maze-paint/MazePaintGame.js';
 import { PatternRecallGame } from './games/pattern-recall/PatternRecallGame.js';
+import { BitMergeGame } from './games/bit-merge/BitMergeGame.js';
 
 
 // Vercel Web Analytics: cookieless visitor and page-view counts (only reports on the deployed site)
@@ -52,6 +53,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   engine.registry.register(PinballGame);
   engine.registry.register(MazePaintGame);
   engine.registry.register(PatternRecallGame);
+  engine.registry.register(BitMergeGame);
   engine.registry.register(CyberTanksGame);
 
   initLandingMotion();
