@@ -1531,6 +1531,20 @@ a.nav-btn { text-decoration: none; }
   .nd-over-score { font-size: 1.2rem; }
   .nd-over-stat { margin-bottom: 8px; }
 }
+/* Touch speedo: keep last so the size queries above can't add a `bottom` that stretches the top-anchored box */
+@media (pointer: coarse) {
+  .nd-speedo { top: 92px; right: 12px; bottom: auto; left: auto; width: 150px; height: auto; transform: none; padding: 8px 12px 10px; }
+  .nd-speed-num { font-size: 2rem; }
+  .nd-speed-num small { margin-left: 4px; }
+  .nd-speed-bar { height: 12px; margin-top: 6px; }
+}
+@media (pointer: coarse) and (max-width: 760px) {
+  .nd-speedo { top: 64px; width: 116px; padding: 6px 10px 8px; border-radius: 16px; }
+  .nd-speed-num { font-size: 1.6rem; }
+}
+@media (pointer: coarse) and (max-height: 520px) {
+  .nd-speedo { top: 66px; }
+}
 
 /* Overdrive: Rush Race (Road Rash-style) HUD */
 .nd-rush { display: none; }
