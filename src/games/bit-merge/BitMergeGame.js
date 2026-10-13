@@ -85,6 +85,7 @@ export class BitMergeGame extends BaseGame {
     this._timers = [];
     this._nextId = 1;
     this._swipe = null;
+    this._queued = null;
   }
 
   // -------------------------------------------------------------------------
@@ -142,14 +143,18 @@ export class BitMergeGame extends BaseGame {
         // swipes still work without capture
       }
     });
-    const end = e => {
+    // Fire as soon as the finger passes the threshold, not on lift, so the slide tracks the gesture
+    b.addEventListener('pointermove', e => {
       const s = this._swipe;
-      this._swipe = null;
-      if (!s || e.type === 'pointercancel') return;
+      if (!s) return;
       const dx = e.clientX - s.x;
       const dy = e.clientY - s.y;
       if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_MIN) return;
+      this._swipe = null;
       this.move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up');
+    });
+    const end = () => {
+      this._swipe = null;
     };
     b.addEventListener('pointerup', end);
     b.addEventListener('pointercancel', end);
@@ -271,6 +276,7 @@ export class BitMergeGame extends BaseGame {
     this.over = false;
     this.undoState = null;
     this.busy = false;
+    this._queued = null;
     this.els.win.hidden = true;
     this.els.actions.hidden = false;
     this.refresh();
@@ -287,6 +293,7 @@ export class BitMergeGame extends BaseGame {
     this.over = false;
     this.undoState = null;
     this.busy = false;
+    this._queued = null;
     this.els.win.hidden = true;
     this.els.actions.hidden = false;
     this.spawn();
@@ -308,7 +315,12 @@ export class BitMergeGame extends BaseGame {
   // Moving
   // -------------------------------------------------------------------------
   move(dir) {
-    if (this.busy || this.over || !this.root || !this.els.win.hidden) return false;
+    if (this.over || !this.root || !this.els.win.hidden) return false;
+    if (this.busy) {
+      this._queued = dir; // keep the latest swipe and play it the moment the slide ends
+      return false;
+    }
+    this._queued = null;
     const { dr, dc } = DIRS[dir];
     const before = this.snapshot();
     const n = this.n;
@@ -380,6 +392,7 @@ export class BitMergeGame extends BaseGame {
       t.el.style.setProperty('--c', t.c);
       t.el.classList.remove('new', 'merged');
     });
+    absorbed.forEach(({ tile }) => tile.el.classList.add('absorbed'));
     this.audio?.beep(280 + Math.log2(Math.max(2, biggest || 2)) * 55, 0.06, biggest ? 'triangle' : 'sine', biggest ? 0.2 : 0.1);
 
     this.later(() => {
@@ -392,6 +405,9 @@ export class BitMergeGame extends BaseGame {
       this.spawn();
       this.busy = false;
       this.afterMove(biggest);
+      const next = this._queued;
+      this._queued = null;
+      if (next && !this.over && this.els.win.hidden) this.move(next);
     }, SLIDE_MS);
     this.refresh();
     return true;
