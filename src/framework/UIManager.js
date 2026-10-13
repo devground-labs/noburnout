@@ -33,6 +33,10 @@ const GAME_THEMES = {
     accent: '#14b8a6',
     icon: '<svg viewBox="0 0 32 32"><path d="M3 16s5-8 13-8 13 8 13 8-5 8-13 8S3 16 3 16z"/><circle cx="16" cy="16" r="3.5"/></svg>'
   },
+  'bit-merge': {
+    accent: '#6366f1',
+    icon: '<svg viewBox="0 0 32 32"><rect x="4" y="4" width="11" height="11" rx="3"/><rect x="17" y="17" width="11" height="11" rx="3"/><path d="M17 9.5h6a3 3 0 0 1 3 3V15M15 22.5H9a3 3 0 0 1-3-3V17"/></svg>'
+  },
   default: {
     accent: '#3b82f6',
     icon: '<svg viewBox="0 0 32 32"><rect x="4" y="10" width="24" height="13" rx="6"/><path d="M10 14v5M7.5 16.5h5M21 15.5h.01M24 18.5h.01"/></svg>'

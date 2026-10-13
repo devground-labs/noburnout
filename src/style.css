@@ -2548,3 +2548,89 @@ a.nav-btn { text-decoration: none; }
 }
 .mp-link:hover { color: #94a3b8; }
 .mp-link.confirm { color: #fda4af; }
+
+/* =========================================================================
+   Bit Merge (2048-style merge puzzle; reuses the mp-* shell above)
+   ========================================================================= */
+.bm-scores { display: flex; gap: 8px; }
+.bm-score {
+  min-width: 78px;
+  padding: 6px 10px 7px;
+  text-align: center;
+  background: #fff;
+  border: 3px solid var(--a-navy);
+  border-radius: 12px;
+  box-shadow: 0 3px 0 var(--a-navy);
+}
+.bm-score span { display: block; font: 400 0.45rem var(--a-pixel); letter-spacing: 0.04em; color: #384064; }
+.bm-score b { display: block; margin-top: 4px; font: 700 1.25rem/1 var(--a-display); color: var(--a-navy); font-variant-numeric: tabular-nums; }
+.bm-board {
+  --gap: 8px;
+  --cell: calc((var(--board) - var(--gap) * (var(--n) - 1)) / var(--n));
+  position: relative;
+  width: var(--board);
+  aspect-ratio: 1;
+  padding: 0;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.bm-slots {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--n), 1fr);
+  grid-template-rows: repeat(var(--n), 1fr);
+  gap: var(--gap);
+}
+.bm-slots i { border-radius: 16%; background: rgba(148, 163, 184, 0.18); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.06); }
+.bm-tiles { position: absolute; inset: 0; }
+.bm-tile {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: var(--cell);
+  height: var(--cell);
+  border-radius: 16%;
+  border: 3px solid var(--a-navy);
+  box-shadow: 0 4px 0 var(--a-navy);
+  background: var(--tile, #eee6d8);
+  color: var(--ink, var(--a-navy));
+  font-family: var(--a-display);
+  font-weight: 700;
+  line-height: 1;
+  transform: translate(calc(var(--c) * (var(--cell) + var(--gap))), calc(var(--r) * (var(--cell) + var(--gap))));
+  transition: transform 110ms ease-out;
+  will-change: transform;
+}
+.bm-board[data-format="HEX"] .bm-tile, .bm-board[data-format="BIN"] .bm-tile { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+.bm-tile span { display: block; pointer-events: none; }
+.bm-tile.new { animation: bm-pop 0.2s ease-out 0.08s backwards; }
+.bm-tile.merged { animation: bm-merge 0.22s cubic-bezier(0.34, 1.56, 0.64, 1); z-index: 2; }
+@keyframes bm-pop { from { opacity: 0; scale: 0.4; } }
+@keyframes bm-merge { 50% { scale: 1.18; } }
+.bm-tile[data-k="1"] { --tile: #eee6d8; }
+.bm-tile[data-k="2"] { --tile: #ffe9a8; }
+.bm-tile[data-k="3"] { --tile: #ffbf69; }
+.bm-tile[data-k="4"] { --tile: #ff9f5a; }
+.bm-tile[data-k="5"] { --tile: #ff7b6b; --ink: #fff; }
+.bm-tile[data-k="6"] { --tile: #ff5d8f; --ink: #fff; }
+.bm-tile[data-k="7"] { --tile: #9be3b0; }
+.bm-tile[data-k="8"] { --tile: #5ee0a0; }
+.bm-tile[data-k="9"] { --tile: #5bc0eb; }
+.bm-tile[data-k="10"] { --tile: #4a8ef0; --ink: #fff; }
+.bm-tile[data-k="11"] { --tile: #ffd23f; box-shadow: 0 4px 0 var(--a-navy), 0 0 0 4px #fff; } /* 2048: shipped */
+.bm-tile[data-k="12"] { --tile: #a78bfa; --ink: #fff; }
+.bm-tile[data-k="13"] { --tile: #6366f1; --ink: #fff; }
+.bm-tile[data-k="14"] { --tile: #0b1230; --ink: #ffd23f; }
+@media (max-width: 760px) {
+  .bm-board { --gap: 6px; }
+  .bm-score { min-width: 64px; padding: 5px 8px 6px; }
+  .bm-score b { font-size: 1.05rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bm-tile { transition: none; }
+  .bm-tile.new, .bm-tile.merged { animation: none; }
+}
